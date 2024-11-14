@@ -8,6 +8,7 @@ import com.health.healthplatform.service.SettingService;
 import com.health.healthplatform.service.UserService;
 import com.health.healthplatform.service.VerificationCodeService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,6 +37,7 @@ import com.health.healthplatform.service.*;
 import com.health.healthplatform.result.Result;
 
 @RestController
+@Slf4j
 @RequestMapping("/api/settings")
 public class SettingController {
 
@@ -231,19 +233,35 @@ public class SettingController {
 
     // 发送短信的私有方法
     private void sendSms(String phone, String code) throws Exception {
-        Config config = new Config()
-                .setAccessKeyId(accessKeyId)
-                .setAccessKeySecret(accessKeySecret)
-                .setEndpoint("dysmsapi.aliyuncs.com");
+        try {
+            Config config = new Config()
+                    .setAccessKeyId(accessKeyId)
+                    .setAccessKeySecret(accessKeySecret)
+                    .setEndpoint("dysmsapi.aliyuncs.com");
 
-        Client client = new Client(config);
-        SendSmsRequest sendSmsRequest = new SendSmsRequest()
-                .setPhoneNumbers(phone)
-                .setSignName(signName)
-                .setTemplateCode(templateCode)
-                .setTemplateParam("{\"code\":\"" + code + "\"}");
+            Client client = new Client(config);
+            SendSmsRequest sendSmsRequest = new SendSmsRequest()
+                    .setPhoneNumbers(phone)
+                    .setSignName(signName)
+                    .setTemplateCode(templateCode)
+                    .setTemplateParam("{\"code\":\"" + code + "\"}");
 
-        client.sendSms(sendSmsRequest);
+            // 发送短信并获取响应
+            com.aliyun.dysmsapi20170525.models.SendSmsResponse response = client.sendSms(sendSmsRequest);
+
+            // 记录响应结果
+            log.info("短信发送结果 - 手机号: {}, 请求ID: {}, 发送状态: {}, 状态码: {}",
+                    phone, response.getBody().getRequestId(),
+                    response.getBody().getMessage(), response.getBody().getCode());
+
+            // 检查发送状态
+            if (!"OK".equalsIgnoreCase(response.getBody().getCode())) {
+                throw new RuntimeException("短信发送失败: " + response.getBody().getMessage());
+            }
+        } catch (Exception e) {
+            log.error("短信发送异常 - 手机号: {}, 错误: {}", phone, e.getMessage());
+            throw new RuntimeException("短信发送失败", e);
+        }
     }
 
     // 验证验证码

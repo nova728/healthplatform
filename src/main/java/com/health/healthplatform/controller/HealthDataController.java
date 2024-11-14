@@ -2,8 +2,10 @@ package com.health.healthplatform.controller;
 
 import com.health.healthplatform.DTO.HealthDataDTO;
 import com.health.healthplatform.DTO.HeartRateDTO;
+import com.health.healthplatform.DTO.StepsDTO;
 import com.health.healthplatform.service.HealthDataService;
 import com.health.healthplatform.service.HeartRateService;
+import com.health.healthplatform.service.StepsService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -20,6 +22,9 @@ public class HealthDataController {
 
     @Resource
     HeartRateService heartRateService;
+
+    @Resource
+    StepsService stepsService;
 
     public HealthDataController(HealthDataService healthDataService) {
         this.healthDataService = healthDataService;
@@ -81,6 +86,49 @@ public class HealthDataController {
             return ResponseEntity.ok(recorded);
         } catch (IllegalArgumentException e) {
             log.error("Invalid heart rate data: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    //步数
+    @GetMapping("/{id}/steps")
+    public ResponseEntity<List<StepsDTO>> getStepsHistory(
+            @PathVariable("id") Integer userId,
+            @RequestParam(value = "period", defaultValue = "day") String period) {
+
+        log.info("Fetching steps history for user: {}, period: {}", userId, period);
+
+        if (userId <= 0) {
+            log.warn("Invalid user id: {}", userId);
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<StepsDTO> stepsData = stepsService.getUserStepsHistory(userId, period);
+        log.info("Found {} steps records for user {}", stepsData.size(), userId);
+
+        return ResponseEntity
+                .ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(stepsData);
+    }
+
+    @PostMapping("/{id}/steps")
+    public ResponseEntity<StepsDTO> recordSteps(
+            @PathVariable("id") Integer userId,
+            @RequestBody StepsDTO stepsDTO) {
+
+        log.info("Recording new steps for user: {}", userId);
+
+        if (userId <= 0) {
+            log.warn("Invalid user id: {}", userId);
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            StepsDTO recorded = stepsService.recordSteps(userId, stepsDTO.getSteps());
+            return ResponseEntity.ok(recorded);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid steps data: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }

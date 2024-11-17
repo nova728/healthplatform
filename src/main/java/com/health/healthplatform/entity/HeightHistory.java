@@ -5,12 +5,12 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("weight_history")
-public class WeightHistory {
+@TableName("height_history")
+public class HeightHistory {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Integer userId;
-    private Double weight;
+    private Double height;
     private LocalDateTime measurementTime;
 
     @TableField(fill = FieldFill.INSERT)

@@ -91,26 +91,20 @@ public class WeightService {
     private void updateHealthDataAndBmi(Integer userId, Double weight) {
         try {
             HealthData healthData = healthDataMapper.findByUserId(userId);
-
-            if (healthData != null) {
-                // 更新体重
-                UpdateWrapper<HealthData> updateWrapper = new UpdateWrapper<>();
-                updateWrapper.eq("user_id", userId)
-                        .set("weight", weight)
-                        .set("update_time", LocalDateTime.now());
-
-                // 如果有身高数据，计算并更新BMI
-                if (healthData.getHeight() != null) {
-                    double heightM = healthData.getHeight() / 100.0;
-                    double bmi = weight / (heightM * heightM);
-                    bmiService.recordBmi(userId, bmi, weight, healthData.getHeight());
-                }
-
-                healthDataMapper.update(null, updateWrapper);
-                log.info("Updated weight in health data for user: {}", userId);
+            if (healthData != null && healthData.getHeight() != null) {
+                // 有身高数据时自动计算BMI
+                double heightM = healthData.getHeight() / 100.0;
+                double bmi = Math.round((weight / (heightM * heightM)) * 10) / 10.0;
+                bmiService.recordBmi(userId, bmi, weight, healthData.getHeight());
             }
+            // 更新体重数据
+            UpdateWrapper<HealthData> updateWrapper = new UpdateWrapper<>();
+            updateWrapper.eq("user_id", userId)
+                    .set("weight", weight)
+                    .set("update_time", LocalDateTime.now());
+            healthDataMapper.update(null, updateWrapper);
         } catch (Exception e) {
-            log.error("Error updating health data weight: {}", e.getMessage());
+            log.error("Error updating health data and BMI: {}", e.getMessage());
         }
     }
 

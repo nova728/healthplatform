@@ -3,6 +3,8 @@
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/src/main/java/com/health/healthplatform/mapper/BloodPressureHistoryMapper.java" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/src/main/java/com/health/healthplatform/mapper/BmiHistoryMapper.java" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/src/main/java/com/health/healthplatform/mapper/ExerciseGoalMapper.java" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/src/main/java/com/health/healthplatform/mapper/ExerciseRecordMapper.java" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/src/main/java/com/health/healthplatform/mapper/HealthDataMapper.java" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/src/main/java/com/health/healthplatform/mapper/HeartRateHistoryMapper.java" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/src/main/java/com/health/healthplatform/mapper/HeightHistoryMapper.java" dialect="GenericSQL" />

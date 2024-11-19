@@ -24,6 +24,9 @@ public class HeightService {
     @Resource
     private HealthDataMapper healthDataMapper;
 
+    @Resource
+    private BmiService bmiService;
+
     public HeightService(HeightHistoryMapper heightHistoryMapper) {
         this.heightHistoryMapper = heightHistoryMapper;
     }
@@ -80,28 +83,28 @@ public class HeightService {
         log.info("Successfully recorded height with id: {}", heightHistory.getId());
 
         // 更新健康数据总表
-        updateHealthData(userId, height);
+        updateHealthDataAndBmi(userId, height);
 
         return convertToDTO(heightHistory);
     }
 
-    private void updateHealthData(Integer userId, Double height) {
+    private void updateHealthDataAndBmi(Integer userId, Double height) {
         try {
             HealthData healthData = healthDataMapper.findByUserId(userId);
-
-            if (healthData == null) {
-                log.info("No existing health data found for user: {}", userId);
-            } else {
-                UpdateWrapper<HealthData> updateWrapper = new UpdateWrapper<>();
-                updateWrapper.eq("user_id", userId)
-                        .set("height", height)
-                        .set("update_time", LocalDateTime.now());
-
-                healthDataMapper.update(null, updateWrapper);
-                log.info("Updated height in health data for user: {}", userId);
+            if (healthData != null && healthData.getWeight() != null) {
+                // 有体重数据时自动计算BMI
+                double heightM = height / 100.0;
+                double bmi = Math.round((healthData.getWeight() / (heightM * heightM)) * 10) / 10.0;
+                bmiService.recordBmi(userId, bmi, healthData.getWeight(), height);
             }
+            // 更新身高数据
+            UpdateWrapper<HealthData> updateWrapper = new UpdateWrapper<>();
+            updateWrapper.eq("user_id", userId)
+                    .set("height", height)
+                    .set("update_time", LocalDateTime.now());
+            healthDataMapper.update(null, updateWrapper);
         } catch (Exception e) {
-            log.error("Error updating health data height: {}", e.getMessage());
+            log.error("Error updating health data and BMI: {}", e.getMessage());
         }
     }
 

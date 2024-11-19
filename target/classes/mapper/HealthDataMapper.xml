@@ -30,6 +30,7 @@
             blood_pressure_diastolic,
             weight,
             bmi,
+            height,
             record_date,
             create_time,
             update_time

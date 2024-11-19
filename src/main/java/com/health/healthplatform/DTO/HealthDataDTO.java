@@ -34,6 +34,8 @@ public class HealthDataDTO {
     @DecimalMax(value = "300.0", message = "体重不能超过300kg")
     private Double weight;
 
+    private Double height;
+
     @DecimalMin(value = "10.0", message = "BMI不能低于10")
     @DecimalMax(value = "50.0", message = "BMI不能超过50")
     private Double bmi;

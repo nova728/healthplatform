@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.health.healthplatform.mapper.HealthDataMapper">
-    <resultMap id="HealthDataMap" type="com.health.healthplatform.entity.HealthData">
+<mapper namespace="com.health.healthplatform.mapper.health_data.HealthDataMapper">
+    <resultMap id="HealthDataMap" type="com.health.healthplatform.entity.healthdata.HealthData">
         <id column="id" property="id"/>
         <result column="user_id" property="userId"/>
         <result column="heart_rate" property="heartRate"/>

@@ -3,6 +3,7 @@ package com.health.healthplatform.controller;
 
 import com.health.healthplatform.entity.User;
 import com.health.healthplatform.result.Result;
+import com.health.healthplatform.service.FileService;
 import com.health.healthplatform.service.UserService;
 import com.health.healthplatform.util.JWTUtils;
 import com.health.healthplatform.mapper.UserMapper;
@@ -17,6 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/user")
@@ -26,6 +28,9 @@ public class UserController {
 
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    FileService fileService;
 
     // 登录
     @CrossOrigin
@@ -96,19 +101,46 @@ public class UserController {
     //头像上传
     @CrossOrigin
     @PostMapping("/{id}/uploadAvatar")
-    public ResponseEntity<String> uploadAvatar(@PathVariable Integer id, @RequestParam("file") MultipartFile file) {
-        // 文件保存逻辑
-        String savedPath = saveFile(file);
-        System.out.println("存储路径"+savedPath);
+    public Result uploadAvatar(@PathVariable Integer id, @RequestParam("file") MultipartFile file) {
+        try {
+            // 检查用户是否存在
+            User user = userMapper.selectById(id);
+            if (user == null) {
+                return Result.failure(404, "用户不存在");
+            }
 
-        // 更新用户头像路径
-        User user = userMapper.selectById(id);
-        if (user != null) {
-            user.setAvatar(savedPath);
-            userMapper.updateAvatar(id, savedPath);
-            return ResponseEntity.ok("头像上传成功");
+            // 检查文件是否为空
+            if (file.isEmpty()) {
+                return Result.failure(400, "文件不能为空");
+            }
+
+            // 检查文件类型
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || !(originalFilename.endsWith(".jpg") ||
+                    originalFilename.endsWith(".jpeg") ||
+                    originalFilename.endsWith(".png") ||
+                    originalFilename.endsWith(".gif"))) {
+                return Result.failure(400, "不支持的文件类型");
+            }
+
+            // 生成唯一的文件名
+            String filename = "avatars/" + UUID.randomUUID().toString() +
+                    originalFilename.substring(originalFilename.lastIndexOf("."));
+
+            // 上传文件到OSS
+            String fileUrl = fileService.uploadFile(filename, file.getInputStream());
+
+            // 更新用户头像URL
+            user.setAvatar(fileUrl);
+            userMapper.updateAvatar(id, fileUrl);
+
+            return Result.success(fileUrl);
+
+        } catch (IOException e) {
+            return Result.failure(500, "文件上传失败: " + e.getMessage());
+        } catch (Exception e) {
+            return Result.failure(500, "服务器错误: " + e.getMessage());
         }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("用户未找到");
     }
 
     //更新个人信息

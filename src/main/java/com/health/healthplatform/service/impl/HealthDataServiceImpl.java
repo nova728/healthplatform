@@ -1,9 +1,9 @@
 //package com.health.healthplatform.service.impl;
 //
 //import com.health.healthplatform.DTO.HealthDataDTO;
-//import com.health.healthplatform.entity.HealthData;
-//import com.health.healthplatform.mapper.HealthDataMapper;
-//import com.health.healthplatform.service.HealthDataService;
+//import com.health.healthplatform.entity.healthdata.HealthData;
+//import com.health.healthplatform.mapper.health_data.HealthDataMapper;
+//import com.health.healthplatform.service.health_data.HealthDataService;
 //import com.health.healthplatform.vo.HealthDataVO;
 //import lombok.extern.slf4j.Slf4j;  // 添加这行
 //import org.springframework.beans.BeanUtils;

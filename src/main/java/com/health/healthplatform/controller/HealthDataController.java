@@ -1,7 +1,7 @@
 package com.health.healthplatform.controller;
 
 import com.health.healthplatform.DTO.*;
-import com.health.healthplatform.service.*;
+import com.health.healthplatform.service.health_data.*;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;

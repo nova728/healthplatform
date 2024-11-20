@@ -3,7 +3,7 @@ package com.health.healthplatform.controller;
 import com.health.healthplatform.DTO.ExerciseGoalDTO;
 import com.health.healthplatform.DTO.ExerciseRecordDTO;
 import com.health.healthplatform.DTO.WeeklyStats;
-import com.health.healthplatform.service.ExerciseRecordService;
+import com.health.healthplatform.service.health_data.ExerciseRecordService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

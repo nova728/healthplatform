@@ -22,13 +22,13 @@ public class Article {
     private Integer likeCount;
     private Integer commentCount;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "GMT+8")
     private LocalDateTime createdAt;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "GMT+8")
     private LocalDateTime updatedAt;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "GMT+8")
     private LocalDateTime publishTime;
 
     // 非数据库字段
@@ -36,5 +36,5 @@ public class Article {
     private User author;
     private Boolean isLiked;
     private Boolean isFavorited;
-    private Category category;
+    private Integer category;
 }

@@ -38,17 +38,18 @@ public interface ArticleMapper {
                     many = @Many(select = "selectArticleTags")),
             @Result(property = "author", column = "user_id",
                     one = @One(select = "com.health.healthplatform.mapper.UserMapper.selectById")),
-            @Result(property = "category", column = "category_id",
-                    one = @One(select = "com.health.healthplatform.mapper.CategoryMapper.selectById"))
     })
     Article selectById(Long id);
 
     @Select("SELECT a.*, u.username as author_name, u.avatar as author_avatar " +
             "FROM articles a " +
             "LEFT JOIN user u ON a.user_id = u.id " +
-            "WHERE (#{categoryId} IS NULL OR a.category_id = #{categoryId}) " +
-            "AND a.status = 1 " +
-            "ORDER BY a.created_at DESC LIMIT #{offset}, #{size}")
+            "WHERE a.status = 1 " +
+            "AND IF(#{categoryId} IS NOT NULL, a.category_id = #{categoryId}, 1=1) " +
+            "AND IF(#{search} IS NOT NULL AND #{search} != '', " +
+            "(a.title LIKE CONCAT('%', #{search}, '%') OR a.content LIKE CONCAT('%', #{search}, '%')), 1=1) " +
+            "ORDER BY a.created_at DESC " +
+            "LIMIT #{offset}, #{size}")
     @Results({
             @Result(property = "id", column = "id"),
             @Result(property = "tags", column = "id",
@@ -56,23 +57,36 @@ public interface ArticleMapper {
             @Result(property = "author", column = "user_id",
                     one = @One(select = "com.health.healthplatform.mapper.UserMapper.selectById"))
     })
-    List<Article> selectArticles(@Param("categoryId") Integer categoryId,
-                                 @Param("offset") int offset,
-                                 @Param("size") int size);
+    List<Article> selectArticles(
+            @Param("categoryId") Integer categoryId,
+            @Param("search") String search,
+            @Param("offset") int offset,
+            @Param("size") int size
+    );
+
+    @Select("SELECT COUNT(*) FROM articles " +
+            "WHERE status = 1 " +
+            "AND IF(#{categoryId} IS NOT NULL, category_id = #{categoryId}, 1=1) " +
+            "AND IF(#{search} IS NOT NULL AND #{search} != '', " +
+            "(title LIKE CONCAT('%', #{search}, '%') OR content LIKE CONCAT('%', #{search}, '%')), 1=1)")
+    int countArticles(@Param("categoryId") Integer categoryId, @Param("search") String search);
+
 
     @Select("SELECT name FROM tags t " +
             "INNER JOIN article_tags at ON t.id = at.tag_id " +
             "WHERE at.article_id = #{articleId}")
     List<String> selectArticleTags(Long articleId);
 
-    @Insert("INSERT INTO article_tags(article_id, tag_id) VALUES(#{articleId}, #{tagId})")
+    @Insert("INSERT INTO article_tags(article_id, tag_id) "+
+            "SELECT #{articleId}, #{tagId} FROM DUAL "+
+            "WHERE NOT EXISTS ("+
+            "    SELECT 1 FROM article_tags "+
+            "    WHERE article_id = #{articleId} AND tag_id = #{tagId}"+
+            ")")
     void insertArticleTag(@Param("articleId") Long articleId, @Param("tagId") Long tagId);
 
     @Delete("DELETE FROM article_tags WHERE article_id = #{articleId}")
     void deleteArticleTags(Long articleId);
-
-    @Select("SELECT COUNT(*) FROM articles WHERE category_id = #{categoryId} AND status = 1")
-    int countArticles(@Param("categoryId") Integer categoryId);
 
     @Update("UPDATE articles SET view_count = view_count + 1 WHERE id = #{id}")
     void incrementViewCount(Long id);
@@ -82,4 +96,22 @@ public interface ArticleMapper {
 
     @Select("SELECT COUNT(*) > 0 FROM favorites WHERE article_id = #{articleId} AND user_id = #{userId}")
     boolean checkUserFavorited(@Param("articleId") Long articleId, @Param("userId") Integer userId);
+
+    @Insert("INSERT INTO likes(article_id, user_id) VALUES(#{articleId}, #{userId})")
+    void insertLike(@Param("articleId") Long articleId, @Param("userId") Integer userId);
+
+    @Delete("DELETE FROM likes WHERE article_id = #{articleId} AND user_id = #{userId}")
+    void deleteLike(@Param("articleId") Long articleId, @Param("userId") Integer userId);
+
+    @Update("UPDATE articles SET like_count = like_count + 1 WHERE id = #{id}")
+    void increaseLikeCount(Long id);
+
+    @Update("UPDATE articles SET like_count = like_count - 1 WHERE id = #{id}")
+    void decreaseLikeCount(Long id);
+
+    @Insert("INSERT INTO favorites(article_id, user_id) VALUES(#{articleId}, #{userId})")
+    void insertFavorite(@Param("articleId") Long articleId, @Param("userId") Integer userId);
+
+    @Delete("DELETE FROM favorites WHERE article_id = #{articleId} AND user_id = #{userId}")
+    void deleteFavorite(@Param("articleId") Long articleId, @Param("userId") Integer userId);
 }

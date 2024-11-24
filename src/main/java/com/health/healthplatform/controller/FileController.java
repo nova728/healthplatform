@@ -34,10 +34,7 @@ public class FileController {
 
     @GetMapping("/download/{filename}")
     public ResponseEntity<InputStreamResource> downloadFile(@PathVariable("filename") String filename) throws IOException {
-
-        // 调用文件下载方法
         InputStream inputStream = fileService.downloadFile(filename);
-        // 设置文件响应头
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Disposition", "attachment; filename=" + filename);
         return ResponseEntity.ok()
@@ -45,4 +42,12 @@ public class FileController {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(new InputStreamResource(inputStream));
     }
+
+    @GetMapping("/file/url/{filename}")
+    public String getFileUrl(@PathVariable("filename") String filename) {
+        // 返回新的URL
+        return fileService.getPresignedUrl(filename);
+    }
+
+
 }

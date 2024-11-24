@@ -25,4 +25,3 @@ public class OSSConfig {
         return new OSSClient(endpoint, accessKeyId, accessKeySecret);
     }
 }
-

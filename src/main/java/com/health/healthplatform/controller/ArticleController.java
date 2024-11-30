@@ -1,6 +1,7 @@
 package com.health.healthplatform.controller;
 
 import com.health.healthplatform.entity.Article;
+import com.health.healthplatform.entity.Comment;
 import com.health.healthplatform.service.ArticleService;
 import com.health.healthplatform.service.FileService;
 import com.health.healthplatform.result.Result;
@@ -229,6 +230,7 @@ public class ArticleController {
     }
 
     // 发表评论
+
     @PostMapping("/{userId}/{id}/comments")
     public Result createComment(
             @PathVariable Integer userId,
@@ -239,19 +241,45 @@ public class ArticleController {
             if (userId == null) {
                 return Result.failure(401, "请先登录");
             }
+
             String content = (String) commentData.get("content");
             if (content == null || content.trim().isEmpty()) {
                 return Result.failure(400, "评论内容不能为空");
             }
-            Long parentId = commentData.get("parentId") != null
-                    ? Long.valueOf(commentData.get("parentId").toString())
-                    : null;
 
-            System.out.println("Processing comment for article ID: " + id);
+            // 处理 parentId
+            Long parentId = null;
+            if (commentData.containsKey("parentId") && commentData.get("parentId") != null) {
+                if (commentData.get("parentId") instanceof Integer) {
+                    parentId = ((Integer) commentData.get("parentId")).longValue();
+                } else if (commentData.get("parentId") instanceof Long) {
+                    parentId = (Long) commentData.get("parentId");
+                } else if (commentData.get("parentId") instanceof String) {
+                    parentId = Long.parseLong((String) commentData.get("parentId"));
+                }
+            }
+
+            // 处理 replyToUserId
+            Integer replyToUserId = null;
+            if (commentData.containsKey("replyToUserId") && commentData.get("replyToUserId") != null) {
+                if (commentData.get("replyToUserId") instanceof Integer) {
+                    replyToUserId = (Integer) commentData.get("replyToUserId");
+                } else if (commentData.get("replyToUserId") instanceof String) {
+                    replyToUserId = Integer.parseInt((String) commentData.get("replyToUserId"));
+                }
+            }
+
+            // 打印调试信息
+            System.out.println("Creating comment with parameters:");
+            System.out.println("Article ID: " + id);
+            System.out.println("User ID: " + userId);
             System.out.println("Content: " + content);
             System.out.println("Parent ID: " + parentId);
+            System.out.println("Reply To User ID: " + replyToUserId);
 
-            return Result.success(articleService.createComment(id, userId, content, parentId));
+            Comment comment = articleService.createComment(id, userId, content, parentId, replyToUserId);
+            return Result.success(comment);
+
         } catch (Exception e) {
             e.printStackTrace();
             return Result.failure(500, "发表评论失败: " + e.getMessage());

@@ -133,21 +133,39 @@ public interface ArticleMapper {
     @Delete("DELETE FROM favorites WHERE article_id = #{articleId} AND user_id = #{userId}")
     void deleteFavorite(@Param("articleId") Long articleId, @Param("userId") Integer userId);
 
-    @Insert("INSERT INTO comments(content, article_id, user_id, parent_id, created_at, like_count, reply_count) " +
-            "VALUES(#{content}, #{articleId}, #{userId}, #{parentId}, #{createdAt}, #{likeCount}, #{replyCount})")
+    @Insert("INSERT INTO comments(content, article_id, user_id, parent_id, reply_to_user_id, created_at, like_count, reply_count) " +
+            "VALUES(#{content}, #{articleId}, #{userId}, #{parentId}, #{replyToUserId}, #{createdAt}, #{likeCount}, #{replyCount})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insertComment(Comment comment);
 
-    @Select("SELECT c.*, u.username, u.avatar FROM comments c LEFT JOIN user u ON c.user_id = u.id WHERE c.id = #{id}")
+    @Select("SELECT c.*, u.username, u.avatar, " +
+            "ru.id as reply_to_user_id, ru.username as reply_to_username, ru.avatar as reply_to_avatar " +
+            "FROM comments c " +
+            "LEFT JOIN user u ON c.user_id = u.id " +
+            "LEFT JOIN user ru ON c.reply_to_user_id = ru.id " +
+            "WHERE c.id = #{id}")
     @Results({
-            @Result(property = "user", column = "user_id", one = @One(select = "com.health.healthplatform.mapper.UserMapper.selectById"))
+            @Result(property = "user", column = "user_id",
+                    one = @One(select = "com.health.healthplatform.mapper.UserMapper.selectById")),
+            @Result(property = "replyToUser", column = "reply_to_user_id",
+                    one = @One(select = "com.health.healthplatform.mapper.UserMapper.selectById"))
     })
     Comment selectCommentById(Long id);
 
-    @Select("SELECT c.*, u.username, u.avatar FROM comments c LEFT JOIN user u ON c.user_id = u.id WHERE c.article_id = #{articleId} AND c.parent_id IS NULL ORDER BY c.created_at DESC LIMIT #{offset}, #{size}")
+    @Select("SELECT c.*, u.username, u.avatar, " +
+            "ru.id as reply_to_user_id, ru.username as reply_to_username, ru.avatar as reply_to_avatar " +
+            "FROM comments c " +
+            "LEFT JOIN user u ON c.user_id = u.id " +
+            "LEFT JOIN user ru ON c.reply_to_user_id = ru.id " +
+            "WHERE c.article_id = #{articleId} AND c.parent_id IS NULL " +
+            "ORDER BY c.created_at DESC LIMIT #{offset}, #{size}")
     @Results({
-            @Result(property = "user", column = "user_id", one = @One(select = "com.health.healthplatform.mapper.UserMapper.selectById")),
-            @Result(property = "replies", column = "id", many = @Many(select = "selectCommentReplies"))
+            @Result(property = "user", column = "user_id",
+                    one = @One(select = "com.health.healthplatform.mapper.UserMapper.selectById")),
+            @Result(property = "replyToUser", column = "reply_to_user_id",
+                    one = @One(select = "com.health.healthplatform.mapper.UserMapper.selectById")),
+            @Result(property = "replies", column = "id",
+                    many = @Many(select = "selectCommentReplies"))
     })
     List<Comment> selectComments(@Param("articleId") Long articleId, @Param("offset") int offset, @Param("size") int size);
 
@@ -157,9 +175,18 @@ public interface ArticleMapper {
     @Update("UPDATE articles SET comment_count = comment_count + 1 WHERE id = #{id}")
     void increaseCommentCount(Long id);
 
-    @Select("SELECT c.*, u.username, u.avatar FROM comments c LEFT JOIN user u ON c.user_id = u.id WHERE c.parent_id = #{parentId} ORDER BY c.created_at ASC")
+    @Select("SELECT c.*, u.username, u.avatar, " +
+            "ru.id as reply_to_user_id, ru.username as reply_to_username, ru.avatar as reply_to_avatar " +
+            "FROM comments c " +
+            "LEFT JOIN user u ON c.user_id = u.id " +
+            "LEFT JOIN user ru ON c.reply_to_user_id = ru.id " +
+            "WHERE c.parent_id = #{parentId} " +
+            "ORDER BY c.created_at ASC")
     @Results({
-            @Result(property = "user", column = "user_id", one = @One(select = "com.health.healthplatform.mapper.UserMapper.selectById"))
+            @Result(property = "user", column = "user_id",
+                    one = @One(select = "com.health.healthplatform.mapper.UserMapper.selectById")),
+            @Result(property = "replyToUser", column = "reply_to_user_id",
+                    one = @One(select = "com.health.healthplatform.mapper.UserMapper.selectById"))
     })
     List<Comment> selectCommentReplies(Long parentId);
 

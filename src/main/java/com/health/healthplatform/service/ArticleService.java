@@ -234,39 +234,44 @@ public class ArticleService {
         articleMapper.incrementViewCount(articleId);
     }
 
+    // ArticleService.java
+
+
     @Transactional
-    public Comment createComment(Long articleId, Integer userId, String content, Long parentId) {
-        System.out.println("Creating comment for article ID: " + articleId + ", User ID: " + userId);
-        System.out.println("Parent ID: " + parentId); // 添加日志
-
-        if (content == null || content.trim().isEmpty()) {
-            throw new RuntimeException("评论内容不能为空");
-        }
-
+    public Comment createComment(Long articleId, Integer userId, String content, Long parentId, Integer replyToUserId) {
         Comment comment = new Comment();
+        comment.setContent(content);
         comment.setArticleId(articleId);
         comment.setUserId(userId);
-        comment.setContent(content);
-        comment.setParentId(parentId); // 设置父评论ID
+        comment.setParentId(parentId);
+        comment.setReplyToUserId(replyToUserId);  // 设置回复对象的用户ID
         comment.setCreatedAt(LocalDateTime.now());
         comment.setLikeCount(0);
         comment.setReplyCount(0);
 
-        try {
-            articleMapper.insertComment(comment);
-            articleMapper.increaseCommentCount(articleId);
+        // 打印日志确认数据
+        System.out.println("Creating comment with data:");
+        System.out.println("Article ID: " + articleId);
+        System.out.println("User ID: " + userId);
+        System.out.println("Content: " + content);
+        System.out.println("Parent ID: " + parentId);
+        System.out.println("Reply To User ID: " + replyToUserId);
 
-            if (parentId != null) {
-                articleMapper.increaseReplyCount(parentId);
-            }
+        // 插入评论
+        articleMapper.insertComment(comment);
 
-            Comment createdComment = articleMapper.selectCommentById(comment.getId());
-            System.out.println("Comment created successfully: " + createdComment); // 添加日志
-            return createdComment;
-        } catch (Exception e) {
-            System.err.println("Error creating comment: " + e.getMessage());
-            throw e;
+        // 如果是回复评论，增加父评论的回复数
+        if (parentId != null) {
+            articleMapper.increaseReplyCount(parentId);
         }
+
+        // 增加文章评论数
+        articleMapper.increaseCommentCount(articleId);
+
+        // 获取完整的评论信息（包括用户信息）
+        Comment fullComment = articleMapper.selectCommentById(comment.getId());
+
+        return fullComment;
     }
 
 

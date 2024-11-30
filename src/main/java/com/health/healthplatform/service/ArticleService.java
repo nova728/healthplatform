@@ -2,6 +2,7 @@ package com.health.healthplatform.service;
 
 import com.health.healthplatform.entity.Article;
 import com.health.healthplatform.entity.Category;
+import com.health.healthplatform.entity.Comment;
 import com.health.healthplatform.mapper.ArticleMapper;
 import com.health.healthplatform.mapper.CategoryMapper;
 import com.health.healthplatform.mapper.TagMapper;
@@ -120,8 +121,13 @@ public class ArticleService {
     }
 
     public Article getArticle(Long id, Integer userId) {
+        if (id == null) {
+            throw new RuntimeException("文章ID不能为空");
+        }
         Article article = articleMapper.selectById(id);
+        System.out.println(article);
         if (article == null) {
+            System.out.println(id);
             throw new RuntimeException("文章不存在");
         }
 
@@ -164,7 +170,7 @@ public class ArticleService {
     }
 
     @Transactional
-    public void likeArticle(Long articleId, Integer userId) {
+    public Article likeArticle(Long articleId, Integer userId) {
         if (userId == null) {
             throw new RuntimeException("请先登录");
         }
@@ -175,10 +181,13 @@ public class ArticleService {
 
         articleMapper.insertLike(articleId, userId);
         articleMapper.increaseLikeCount(articleId);
+
+        // 返回更新后的文章信息
+        return getArticle(articleId, userId);
     }
 
     @Transactional
-    public void unlikeArticle(Long articleId, Integer userId) {
+    public Article unlikeArticle(Long articleId, Integer userId) {
         if (userId == null) {
             throw new RuntimeException("请先登录");
         }
@@ -189,6 +198,9 @@ public class ArticleService {
 
         articleMapper.deleteLike(articleId, userId);
         articleMapper.decreaseLikeCount(articleId);
+
+        // 返回更新后的文章信息
+        return getArticle(articleId, userId);
     }
 
     @Transactional
@@ -216,4 +228,90 @@ public class ArticleService {
 
         articleMapper.deleteFavorite(articleId, userId);
     }
+
+    // 增加浏览量
+    public void incrementViewCount(Long articleId) {
+        articleMapper.incrementViewCount(articleId);
+    }
+
+    @Transactional
+    public Comment createComment(Long articleId, Integer userId, String content, Long parentId) {
+        System.out.println("Creating comment for article ID: " + articleId + ", User ID: " + userId);
+        System.out.println("Parent ID: " + parentId); // 添加日志
+
+        if (content == null || content.trim().isEmpty()) {
+            throw new RuntimeException("评论内容不能为空");
+        }
+
+        Comment comment = new Comment();
+        comment.setArticleId(articleId);
+        comment.setUserId(userId);
+        comment.setContent(content);
+        comment.setParentId(parentId); // 设置父评论ID
+        comment.setCreatedAt(LocalDateTime.now());
+        comment.setLikeCount(0);
+        comment.setReplyCount(0);
+
+        try {
+            articleMapper.insertComment(comment);
+            articleMapper.increaseCommentCount(articleId);
+
+            if (parentId != null) {
+                articleMapper.increaseReplyCount(parentId);
+            }
+
+            Comment createdComment = articleMapper.selectCommentById(comment.getId());
+            System.out.println("Comment created successfully: " + createdComment); // 添加日志
+            return createdComment;
+        } catch (Exception e) {
+            System.err.println("Error creating comment: " + e.getMessage());
+            throw e;
+        }
+    }
+
+
+    public Map<String, Object> getComments(Long articleId, int page, int size) {
+        Map<String, Object> result = new HashMap<>();
+
+        // 获取所有评论
+        List<Comment> allComments = articleMapper.selectAllComments(articleId);
+
+        // 构建评论树结构
+        Map<Long, Comment> commentMap = new HashMap<>();
+        List<Comment> rootComments = new ArrayList<>();
+
+        for (Comment comment : allComments) {
+            commentMap.put(comment.getId(), comment);
+            if (comment.getReplies() == null) {
+                comment.setReplies(new ArrayList<>());
+            }
+        }
+
+        for (Comment comment : allComments) {
+            if (comment.getParentId() == null) {
+                rootComments.add(comment);
+            } else {
+                Comment parentComment = commentMap.get(comment.getParentId());
+                if (parentComment != null && parentComment.getReplies() != null) {
+                    parentComment.getReplies().add(comment);
+                }
+            }
+        }
+
+        // 分页处理
+        int start = (page - 1) * size;
+        int end = Math.min(start + size, rootComments.size());
+        List<Comment> pagedComments = start < rootComments.size() ?
+                rootComments.subList(start, end) :
+                new ArrayList<>();
+
+        result.put("comments", pagedComments);
+        result.put("total", rootComments.size());
+        result.put("page", page);
+        result.put("size", size);
+        result.put("pages", (rootComments.size() + size - 1) / size);
+
+        return result;
+    }
+
 }

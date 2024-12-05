@@ -1,6 +1,7 @@
 package com.health.healthplatform.controller;
 
 import com.health.healthplatform.entity.Article;
+import com.health.healthplatform.entity.Comment;
 import com.health.healthplatform.service.ArticleService;
 import com.health.healthplatform.service.FileService;
 import com.health.healthplatform.result.Result;
@@ -30,8 +31,8 @@ public class ArticleController {
     public Result createArticle(@PathVariable Integer userId, @RequestBody Article article) {
         try {
             // 打印接收到的数据
-            System.out.println("Received userId: " + userId);
-            System.out.println("Received article data: " + article);
+            //System.out.println("Received userId: " + userId);
+            // System.out.println("Received article data: " + article);
 
             if (userId == null) {
                 return Result.failure(401, "请先登录");
@@ -44,12 +45,12 @@ public class ArticleController {
 
             System.out.println("Article title validation passed");
 
-            // 打印关键字段
-            System.out.println("Title: " + article.getTitle());
-            System.out.println("Content: " + article.getContent());
-            System.out.println("CategoryId: " + article.getCategoryId());
-            System.out.println("Tags: " + article.getTags());
-            System.out.println("PublishTime: " + article.getPublishTime());
+//            // 打印关键字段
+//            System.out.println("Title: " + article.getTitle());
+//            System.out.println("Content: " + article.getContent());
+//            System.out.println("CategoryId: " + article.getCategoryId());
+//            System.out.println("Tags: " + article.getTags());
+//            System.out.println("PublishTime: " + article.getPublishTime());
 
             // 设置默认值
             article.setUserId(userId);
@@ -159,31 +160,29 @@ public class ArticleController {
         }
     }
 
-    // 点赞文章
-    @PostMapping("/{userId}/{id}/like")
-    public Result likeArticle(@PathVariable Integer userId, @PathVariable Long id) {
+    @PostMapping("/{articleId}/{userId}/like")
+    public Result likeArticle(@PathVariable Long articleId, @PathVariable Integer userId) {
         try {
             if (userId == null) {
                 return Result.failure(401, "请先登录");
             }
 
-            articleService.likeArticle(id, userId);
-            return Result.success(null);
+            Article article = articleService.likeArticle(articleId, userId);
+            return Result.success(article); // 返回更新后的文章信息
         } catch (Exception e) {
             return Result.failure(500, "点赞失败: " + e.getMessage());
         }
     }
 
-    // 取消点赞
-    @DeleteMapping("/{userId}/{id}/like")
-    public Result unlikeArticle(@PathVariable Integer userId, @PathVariable Long id) {
+    @DeleteMapping("/{articleId}/{userId}/like")
+    public Result unlikeArticle(@PathVariable Long articleId, @PathVariable Integer userId) {
         try {
             if (userId == null) {
                 return Result.failure(401, "请先登录");
             }
 
-            articleService.unlikeArticle(id, userId);
-            return Result.success(null);
+            Article article = articleService.unlikeArticle(articleId, userId);
+            return Result.success(article); // 返回更新后的文章信息
         } catch (Exception e) {
             return Result.failure(500, "取消点赞失败: " + e.getMessage());
         }
@@ -216,6 +215,90 @@ public class ArticleController {
             return Result.success(null);
         } catch (Exception e) {
             return Result.failure(500, "取消收藏失败: " + e.getMessage());
+        }
+    }
+
+    // 增加浏览量
+    @PostMapping("/{userId}/{id}/view")
+    public Result incrementViewCount(@PathVariable Integer userId, @PathVariable Long id) {
+        try {
+            articleService.incrementViewCount(id);
+            return Result.success(null);
+        } catch (Exception e) {
+            return Result.failure(500, "增加浏览量失败: " + e.getMessage());
+        }
+    }
+
+    // 发表评论
+
+    @PostMapping("/{userId}/{id}/comments")
+    public Result createComment(
+            @PathVariable Integer userId,
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> commentData
+    ) {
+        try {
+            if (userId == null) {
+                return Result.failure(401, "请先登录");
+            }
+
+            String content = (String) commentData.get("content");
+            if (content == null || content.trim().isEmpty()) {
+                return Result.failure(400, "评论内容不能为空");
+            }
+
+            // 处理 parentId
+            Long parentId = null;
+            if (commentData.containsKey("parentId") && commentData.get("parentId") != null) {
+                if (commentData.get("parentId") instanceof Integer) {
+                    parentId = ((Integer) commentData.get("parentId")).longValue();
+                } else if (commentData.get("parentId") instanceof Long) {
+                    parentId = (Long) commentData.get("parentId");
+                } else if (commentData.get("parentId") instanceof String) {
+                    parentId = Long.parseLong((String) commentData.get("parentId"));
+                }
+            }
+
+            // 处理 replyToUserId
+            Integer replyToUserId = null;
+            if (commentData.containsKey("replyToUserId") && commentData.get("replyToUserId") != null) {
+                if (commentData.get("replyToUserId") instanceof Integer) {
+                    replyToUserId = (Integer) commentData.get("replyToUserId");
+                } else if (commentData.get("replyToUserId") instanceof String) {
+                    replyToUserId = Integer.parseInt((String) commentData.get("replyToUserId"));
+                }
+            }
+
+            // 打印调试信息
+            System.out.println("Creating comment with parameters:");
+            System.out.println("Article ID: " + id);
+            System.out.println("User ID: " + userId);
+            System.out.println("Content: " + content);
+            System.out.println("Parent ID: " + parentId);
+            System.out.println("Reply To User ID: " + replyToUserId);
+
+            Comment comment = articleService.createComment(id, userId, content, parentId, replyToUserId);
+            return Result.success(comment);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.failure(500, "发表评论失败: " + e.getMessage());
+        }
+    }
+
+
+    // 获取评论列表
+    @GetMapping("/{userId}/{id}/comments")
+    public Result getComments(
+            @PathVariable Integer userId,
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        try {
+            return Result.success(articleService.getComments(id, page, size));
+        } catch (Exception e) {
+            return Result.failure(500, "获取评论失败: " + e.getMessage());
         }
     }
 }

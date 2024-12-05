@@ -21,6 +21,7 @@ public class Article {
     private Integer viewCount;
     private Integer likeCount;
     private Integer commentCount;
+    private Integer favoriteCount;
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "GMT+8")
     private LocalDateTime createdAt;

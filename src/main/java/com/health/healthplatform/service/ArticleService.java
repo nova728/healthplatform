@@ -214,6 +214,7 @@ public class ArticleService {
         }
 
         articleMapper.insertFavorite(articleId, userId);
+        articleMapper.increaseFavoriteCount(articleId); // Add this line
     }
 
     @Transactional
@@ -227,6 +228,7 @@ public class ArticleService {
         }
 
         articleMapper.deleteFavorite(articleId, userId);
+        articleMapper.decreaseFavoriteCount(articleId); // Add this line
     }
 
     // 增加浏览量

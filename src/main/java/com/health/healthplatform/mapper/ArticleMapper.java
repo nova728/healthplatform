@@ -192,4 +192,10 @@ public interface ArticleMapper {
 
     @Update("UPDATE comments SET reply_count = reply_count + 1 WHERE id = #{id}")
     void increaseReplyCount(Long id);
+
+    @Update("UPDATE articles SET favorite_count = favorite_count + 1 WHERE id = #{id}")
+    void increaseFavoriteCount(Long id);
+
+    @Update("UPDATE articles SET favorite_count = favorite_count - 1 WHERE id = #{id}")
+    void decreaseFavoriteCount(Long id);
 }

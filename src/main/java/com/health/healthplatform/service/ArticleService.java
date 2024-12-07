@@ -6,6 +6,7 @@ import com.health.healthplatform.entity.Comment;
 import com.health.healthplatform.mapper.ArticleMapper;
 import com.health.healthplatform.mapper.CategoryMapper;
 import com.health.healthplatform.mapper.TagMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.annotation.Resource;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 
+@Slf4j
 @Service
 public class ArticleService {
 
@@ -49,47 +51,32 @@ public class ArticleService {
                 article.setPublishTime(now);
             }
 
-            // 打印准备插入的文章数据
-            System.out.println("Preparing to insert article: " + article);
+            // 插入文章并获取生成的ID
+            articleMapper.insert(article);
+            Long articleId = article.getId();
+            System.out.println("Article inserted with ID: " + articleId);
 
-            try {
-                // 插入文章
-                articleMapper.insert(article);
-                System.out.println("Article inserted with ID: " + article.getId());
-            } catch (Exception e) {
-                System.err.println("Error in articleMapper.insert: " + e);
-                e.printStackTrace();
-                throw e;
+            if (articleId == null) {
+                throw new RuntimeException("Failed to get generated article ID");
             }
 
             // 处理标签
-            System.out.println("Processing tags: " + article.getTags());
             for (String tagName : article.getTags()) {
                 if (tagName != null && !tagName.trim().isEmpty()) {
-                    try {
-                        // 获取或创建标签
-                        Long tagId = tagMapper.getOrCreateTag(tagName.trim());
-                        if (tagId != null) {
-                            System.out.println("Inserting tag: " + tagName + " with ID: " + tagId);
-                            articleMapper.insertArticleTag(article.getId(), tagId);
-                        }
-                    } catch (Exception e) {
-                        System.err.println("Error processing tag: " + tagName + ", Error: " + e);
-                        e.printStackTrace();
-                    }
+                    Long tagId = tagMapper.getOrCreateTag(tagName.trim());
+                    articleMapper.insertArticleTag(articleId, tagId);
                 }
             }
 
-            Article result = getArticle(article.getId(), userId);
-            System.out.println("Article created successfully: " + result);
-            return result;
+            // 重要：直接使用返回的article对象，确保ID已经设置
+            return articleMapper.selectById(articleId);
+
         } catch (Exception e) {
             System.err.println("Error in createArticle service: " + e);
             e.printStackTrace();
             throw e;
         }
     }
-
 
     @Transactional
     public Article updateArticle(Article article, Integer userId) {
@@ -320,5 +307,54 @@ public class ArticleService {
 
         return result;
     }
+
+    public List<Article> getHotArticles() {
+        // 更新所有文章的热度分数
+        try{
+            List<Article> allArticles = articleMapper.selectAll();
+            for (Article article : allArticles) {
+                int hotScore = article.getViewCount() * 1 +
+                        article.getLikeCount() * 3 +
+                        article.getCommentCount() * 5;
+                article.setHotScore(hotScore);
+                article.setIsHot(hotScore > 1000);
+                articleMapper.updateHotScore(article.getId());
+            }
+
+            // 获取热门文章
+            return articleMapper.selectHotArticles(10);  // 返回前10篇热门文章
+        }catch (Exception e) {
+            log.error("获取热门文章失败", e);
+            throw new RuntimeException("获取热门文章失败: " + e.getMessage());
+        }
+    }
+
+    public List<Article> getRecommendedArticles(Integer userId) {
+        // 基于用户阅读历史和标签推荐文章
+        return articleMapper.selectRecommendedArticles(userId);
+    }
+
+    public Map<String, Object> getUserArticles(Integer userId) {
+        if (userId == null) {
+            throw new RuntimeException("用户ID不能为空");
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        try {
+            // 获取已发布的文章
+            List<Article> publishedArticles = articleMapper.selectUserArticles(userId, 1);
+            // 获取草稿箱的文章
+            List<Article> draftArticles = articleMapper.selectUserArticles(userId, 0);
+
+            result.put("published", publishedArticles);
+            result.put("drafts", draftArticles);
+
+            return result;
+        } catch (Exception e) {
+            log.error("获取用户文章失败", e);
+            throw new RuntimeException("获取用户文章失败: " + e.getMessage());
+        }
+    }
+
 
 }

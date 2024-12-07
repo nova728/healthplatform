@@ -5,6 +5,8 @@ import com.health.healthplatform.service.ArticleService;
 import com.health.healthplatform.result.Result;
 import org.springframework.web.bind.annotation.*;
 import jakarta.annotation.Resource;
+
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -179,4 +181,5 @@ public class ArticleFormatController {
 
         return htmlContent.substring(0, startPos) + formattedText + htmlContent.substring(endPos);
     }
+
 }

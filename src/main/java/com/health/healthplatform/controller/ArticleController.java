@@ -2,11 +2,13 @@ package com.health.healthplatform.controller;
 
 import com.health.healthplatform.entity.Article;
 import com.health.healthplatform.entity.Comment;
+import com.health.healthplatform.mapper.ArticleMapper;
 import com.health.healthplatform.service.ArticleService;
 import com.health.healthplatform.service.FileService;
 import com.health.healthplatform.result.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import jakarta.annotation.Resource;
@@ -22,6 +24,9 @@ public class ArticleController {
 
     @Resource
     private ArticleService articleService;
+
+    @Resource
+    private ArticleMapper articleMapper;
 
     @Autowired
     private FileService fileService;
@@ -299,6 +304,46 @@ public class ArticleController {
             return Result.success(articleService.getComments(id, page, size));
         } catch (Exception e) {
             return Result.failure(500, "获取评论失败: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    @DeleteMapping("/{userId}/delete-draft")
+    public Result deleteDraft(@PathVariable Integer userId, @RequestBody Map<String, Object> draftData) {
+        try {
+            if (userId == null) {
+                return Result.failure(401, "请先登录");
+            }
+
+            String title = (String) draftData.get("title");
+            String content = (String) draftData.get("content");
+
+            if (title == null || content == null) {
+                return Result.failure(400, "标题和内容不能为空");
+            }
+
+            // 查找草稿
+            Article draft = articleMapper.findDraft(userId, title, content);
+            System.out.println("查找到的草稿: " + draft);
+
+            if (draft != null && draft.getId() != null) {
+                // 删除标签关联
+                int tagsDeleted = articleMapper.deleteArticleTags(draft.getId());
+
+                // 删除文章
+                int articlesDeleted = articleMapper.deleteArticle(draft.getId());
+
+                if (articlesDeleted == 0) {
+                    throw new RuntimeException("删除草稿失败，未找到匹配的记录");
+                }
+            } else {
+                System.out.println("未找到匹配的草稿或草稿ID为空");
+            }
+
+            return Result.success(null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.failure(500, "删除草稿失败: " + e.getMessage());
         }
     }
 }

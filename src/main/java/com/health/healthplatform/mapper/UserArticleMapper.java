@@ -10,6 +10,7 @@ import java.util.List;
 public interface UserArticleMapper {
     @Select("SELECT * FROM articles WHERE user_id = #{userId} AND status = #{status}")
     @Results({
+            @Result(property = "id", column = "id"),
             @Result(property = "htmlContent", column = "html_content"),
             @Result(property = "coverImage", column = "cover_image"),
             @Result(property = "categoryId", column = "category_id"),

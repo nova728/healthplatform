@@ -8,6 +8,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.cors.CorsConfiguration;
+
+import java.util.Arrays;
 import java.util.Collections;
 @Configuration
 @EnableWebSecurity
@@ -18,7 +20,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(request -> {
                 CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOrigins(Collections.singletonList("*"));
+                config.setAllowedOrigins(Arrays.asList("http://localhost:8088","http://localhost:5173"));
                 config.setAllowedMethods(Collections.singletonList("*"));
                 config.setAllowedHeaders(Collections.singletonList("*"));
                 config.setAllowCredentials(true);
@@ -42,7 +44,7 @@ public class SecurityConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedMethods("*")
-                        .allowedOrigins("*")
+                        .allowedOrigins("http://localhost:8088","http://localhost:5173")
                         .allowedHeaders("*")
                         .exposedHeaders("*");
             }

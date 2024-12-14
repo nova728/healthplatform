@@ -1,4 +1,4 @@
-package com.health.healthplatform.service;
+package com.health.healthplatform.service.DietRecord;
 
 import java.util.Collections;
 
@@ -14,7 +14,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.health.healthplatform.DTO.FoodSearchResponseDTO;
+import com.health.healthplatform.service.OAuth2Service;
 
 import lombok.extern.slf4j.Slf4j;
 @Service
@@ -29,7 +31,7 @@ public class FoodSearchService {
         this.apiUrl = apiUrl;
     }
 
-    public JsonNode searchFood(String query, int pageNumber, int maxResults) {
+    public FoodSearchResponseDTO searchFood(String query, int pageNumber, int maxResults) {
         try {
             // 创建请求头
             HttpHeaders headers = new HttpHeaders();
@@ -43,6 +45,7 @@ public class FoodSearchService {
             params.add("page_number", String.valueOf(pageNumber));
             params.add("max_results", String.valueOf(maxResults));
             params.add("format", "json");
+
 
             // 创建请求实体
             HttpEntity<MultiValueMap<String, String>> requestEntity = 
@@ -62,18 +65,24 @@ public class FoodSearchService {
             ));
 
             // 发送请求
-            ResponseEntity<JsonNode> response = restTemplate.exchange(
+            ResponseEntity<String> response = restTemplate.exchange(
                 apiUrl,
                 HttpMethod.POST,
                 requestEntity,
-                JsonNode.class
+                String.class
             );
 
             if (!response.getStatusCode().is2xxSuccessful()) {
                 throw new RuntimeException("API 请求失败: " + response.getStatusCode());
             }
 
-            return response.getBody();
+            log.info("API 返回的数据： {}", response.getBody());
+
+            // 将响应体转换为 FoodSearchResponseDTO
+            ObjectMapper objectMapper = new ObjectMapper();
+            FoodSearchResponseDTO foodSearchResponse = objectMapper.readValue(response.getBody(), FoodSearchResponseDTO.class);
+
+            return foodSearchResponse;
 
         } catch (Exception e) {
             log.error("搜索食物失败: {}", e.getMessage(), e);

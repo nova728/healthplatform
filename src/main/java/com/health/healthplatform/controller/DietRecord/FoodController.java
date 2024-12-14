@@ -1,4 +1,5 @@
-package com.health.healthplatform.controller;
+//处理和食物相关的请求
+package com.health.healthplatform.controller.DietRecord;
 
 import java.util.Collections;
 
@@ -9,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.health.healthplatform.service.FoodSearchService;
+import com.health.healthplatform.DTO.FoodSearchResponseDTO;
+import com.health.healthplatform.service.DietRecord.FoodSearchService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -41,7 +42,7 @@ public class FoodController {
                     .body(Collections.singletonMap("error", "页码和大小必须大于0"));
             }
 
-            JsonNode result = foodSearchService.searchFood(query, page, size);
+            FoodSearchResponseDTO result = foodSearchService.searchFood(query, page, size);
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {

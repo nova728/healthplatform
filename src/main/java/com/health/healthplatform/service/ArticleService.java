@@ -3,6 +3,7 @@ package com.health.healthplatform.service;
 import com.health.healthplatform.entity.Article;
 import com.health.healthplatform.entity.Category;
 import com.health.healthplatform.entity.Comment;
+import com.health.healthplatform.entity.User;
 import com.health.healthplatform.mapper.ArticleMapper;
 import com.health.healthplatform.mapper.CategoryMapper;
 import com.health.healthplatform.mapper.TagMapper;
@@ -29,6 +30,12 @@ public class ArticleService {
 
     @Resource
     CategoryMapper categoryMapper;
+
+    @Resource
+    UserService userService;
+
+    @Resource
+    private NotificationService notificationService;
 
     @Transactional
     public Article createArticle(Article article, Integer userId) {
@@ -166,10 +173,26 @@ public class ArticleService {
             throw new RuntimeException("已经点赞过了");
         }
 
+        Article article = articleMapper.selectById(articleId);
+        if (article == null) {
+            throw new RuntimeException("文章不存在");
+        }
+
         articleMapper.insertLike(articleId, userId);
         articleMapper.increaseLikeCount(articleId);
 
-        // 返回更新后的文章信息
+        // 发送点赞通知
+        String message = String.format("%s 点赞了你的文章 《%s》",
+                userService.selectById(userId).getUsername(),
+                article.getTitle());
+        notificationService.createNotification(
+                article.getUserId(),  // 文章作者ID
+                userId,              // 点赞者ID
+                "like",             // 通知类型
+                message,            // 通知内容
+                articleId           // 文章ID
+        );
+
         return getArticle(articleId, userId);
     }
 
@@ -228,39 +251,75 @@ public class ArticleService {
 
     @Transactional
     public Comment createComment(Long articleId, Integer userId, String content, Long parentId, Integer replyToUserId) {
-        Comment comment = new Comment();
-        comment.setContent(content);
-        comment.setArticleId(articleId);
-        comment.setUserId(userId);
-        comment.setParentId(parentId);
-        comment.setReplyToUserId(replyToUserId);  // 设置回复对象的用户ID
-        comment.setCreatedAt(LocalDateTime.now());
-        comment.setLikeCount(0);
-        comment.setReplyCount(0);
+        try {
+            Comment comment = new Comment();
+            comment.setContent(content);
+            comment.setArticleId(articleId);
+            comment.setUserId(userId);
+            comment.setParentId(parentId);
+            comment.setReplyToUserId(replyToUserId);
+            comment.setCreatedAt(LocalDateTime.now());
+            comment.setLikeCount(0);
+            comment.setReplyCount(0);
 
-        // 打印日志确认数据
-        System.out.println("Creating comment with data:");
-        System.out.println("Article ID: " + articleId);
-        System.out.println("User ID: " + userId);
-        System.out.println("Content: " + content);
-        System.out.println("Parent ID: " + parentId);
-        System.out.println("Reply To User ID: " + replyToUserId);
+            // 插入评论
+            articleMapper.insertComment(comment);
 
-        // 插入评论
-        articleMapper.insertComment(comment);
+            // 如果是回复评论，增加父评论的回复数
+            if (parentId != null) {
+                articleMapper.increaseReplyCount(parentId);
+            }
 
-        // 如果是回复评论，增加父评论的回复数
-        if (parentId != null) {
-            articleMapper.increaseReplyCount(parentId);
+            // 增加文章评论数
+            articleMapper.increaseCommentCount(articleId);
+
+            // 获取文章和评论者信息
+            Article article = articleMapper.selectById(articleId);
+            User commenter = userService.selectById(userId);
+
+            // 发送评论通知
+            if (!userId.equals(article.getUserId())) { // 不给自己发通知
+                String message;
+                if (parentId != null) {
+                    // 如果是回复评论
+                    Comment parentComment = articleMapper.selectCommentById(parentId);
+                    message = String.format("%s 回复了你在文章《%s》中的评论",
+                            commenter.getUsername(), article.getTitle());
+
+                    // 通知评论作者
+                    notificationService.createNotification(
+                            replyToUserId != null ? replyToUserId : parentComment.getUserId(),
+                            userId,
+                            "comment",
+                            message,
+                            articleId
+                    );
+                } else {
+                    // 如果是直接评论文章
+                    message = String.format("%s 评论了你的文章《%s》",
+                            commenter.getUsername(), article.getTitle());
+
+                    // 通知文章作者
+                    notificationService.createNotification(
+                            article.getUserId(),
+                            userId,
+                            "comment",
+                            message,
+                            articleId
+                    );
+                }
+            }
+
+            // 返回完整的评论信息
+            Comment fullComment = articleMapper.selectCommentById(comment.getId());
+            System.out.println("评论创建成功: " + fullComment);
+            return fullComment;
+
+        } catch (Exception e) {
+            System.err.println("创建评论失败: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("创建评论失败", e);
         }
-
-        // 增加文章评论数
-        articleMapper.increaseCommentCount(articleId);
-
-        // 获取完整的评论信息（包括用户信息）
-        Comment fullComment = articleMapper.selectCommentById(comment.getId());
-
-        return fullComment;
     }
 
 

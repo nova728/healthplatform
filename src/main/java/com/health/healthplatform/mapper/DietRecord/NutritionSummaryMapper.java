@@ -1,6 +1,7 @@
 package com.health.healthplatform.mapper.DietRecord;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -15,11 +16,11 @@ public interface NutritionSummaryMapper extends BaseMapper<NutritionSummary> {
     @Select("SELECT * FROM daily_nutrition_summary WHERE user_id = #{userId} AND record_date = #{date}")
     NutritionSummary findByUserIdAndDate(@Param("userId") Integer userId, @Param("date") LocalDate date);
     
-    @Select("SELECT * FROM daily_diet_records WHERE user_id = #{userId} ORDER BY record_date DESC LIMIT 1")
+    @Select("SELECT * FROM daily_nutrition_summary WHERE user_id = #{userId} ORDER BY record_date DESC LIMIT 1")
     NutritionSummary findLatestByUserId(@Param("userId") Integer userId);
 
     @Insert("""
-        INSERT INTO nutrition_summary
+        INSERT INTO daily_nutrition_summary
             (user_id, record_date, total_calories, total_carbs, total_protein, total_fat,
              recommended_calories, recommended_carbs, recommended_protein, recommended_fat)
         VALUES
@@ -32,4 +33,16 @@ public interface NutritionSummaryMapper extends BaseMapper<NutritionSummary> {
             total_fat = VALUES(total_fat)
     """)
     void insertOrUpdate(NutritionSummary summary);
+
+    @Select("""
+        SELECT * FROM daily_nutrition_summary 
+        WHERE user_id = #{userId} 
+        AND record_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY record_date
+    """)
+    List<NutritionSummary> findByUserIdAndDateRange(
+        @Param("userId") Integer userId, 
+        @Param("startDate") LocalDate startDate, 
+        @Param("endDate") LocalDate endDate
+    );
 } 

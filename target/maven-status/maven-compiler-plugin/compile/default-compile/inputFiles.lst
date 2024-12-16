@@ -37,6 +37,7 @@ D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthp
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\entity\Article.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\controller\FileController.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\config\WebSocketConfig.java
+D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\controller\DietRecord\NutritionStatsController.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\DTO\WeightDTO.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\mapper\health_data\WeightHistoryMapper.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\entity\healthdata\BmiHistory.java
@@ -64,6 +65,7 @@ D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthp
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\mapper\health_data\ExerciseGoalMapper.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\mapper\UserMapper.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\result\Result.java
+D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\DTO\DietRecord\NutritionStatsDTO.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\entity\healthdata\SleepHistory.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\service\health_data\BmiService.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\service\health_data\StepsService.java
@@ -83,6 +85,7 @@ D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthp
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\mapper\health_data\SleepHistoryMapper.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\DTO\WeeklyStats.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\service\health_data\HeightService.java
+D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\service\DietRecord\NutritionStatsService.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\controller\DietRecord\DietRecordController.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\controller\DietRecord\FoodController.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\DTO\DietRecord\FoodSearchResponseDTO.java

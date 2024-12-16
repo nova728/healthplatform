@@ -1,4 +1,4 @@
-package com.health.healthplatform.DTO;
+package com.health.healthplatform.DTO.DietRecord;
 
 import java.util.List;
 

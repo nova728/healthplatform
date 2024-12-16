@@ -1,7 +1,7 @@
 package com.health.healthplatform.controller.DietRecord;
 
-import com.health.healthplatform.DTO.DietRecord.DailyDietDTO;
 import com.health.healthplatform.DTO.DietRecord.MealRecordDTO;
+import com.health.healthplatform.DTO.DietRecord.NutritionSummaryDTO;
 import com.health.healthplatform.service.DietRecord.DietRecordService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -21,22 +21,22 @@ public class DietRecordController {
     }
 
     @PostMapping("/{userId}/meals")
-    public ResponseEntity<DailyDietDTO> addMealRecord(
+    public ResponseEntity<NutritionSummaryDTO> addMealRecord(
             @PathVariable Integer userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestBody MealRecordDTO mealRecord) {
         return ResponseEntity.ok(dietRecordService.addMealRecord(userId, date, mealRecord));
     }
 
-    @GetMapping("/{userId}/daily")
-    public ResponseEntity<DailyDietDTO> getDailyDiet(
+    @GetMapping("/{userId}/nutrition/daily")
+    public ResponseEntity<NutritionSummaryDTO> getDailyNutritionSummary(
             @PathVariable Integer userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return ResponseEntity.ok(dietRecordService.getDailyDiet(userId, date));
+        return ResponseEntity.ok(dietRecordService.getDailyNutritionSummary(userId, date));
     }
 
     @DeleteMapping("/{userId}/meals/{mealId}")
-    public ResponseEntity<DailyDietDTO> deleteMealRecord(
+    public ResponseEntity<NutritionSummaryDTO> deleteMealRecord(
             @PathVariable Integer userId,
             @PathVariable Long mealId) {
         return ResponseEntity.ok(dietRecordService.deleteMealRecord(userId, mealId));

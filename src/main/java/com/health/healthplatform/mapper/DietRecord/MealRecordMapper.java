@@ -10,14 +10,14 @@ import org.apache.ibatis.annotations.Select;
 import java.util.List;
 
 @Mapper
-public interface MealRecordMapper extends BaseMapper<MealRecord> {
+public interface MealRecordMapper extends BaseMapper<MealRecord> { // 继承 BaseMapper 接口，可以直接使用selectById等方法
     
-    @Select("SELECT * FROM meal_records WHERE daily_diet_id = #{dailyDietId}")
-    List<MealRecord> findByDailyDietId(@Param("dailyDietId") Long dailyDietId);
+    @Select("SELECT * FROM meal_records WHERE nutrition_summary_id = #{nutritionSummaryId}")
+    List<MealRecord> findByNutritionSummaryId(@Param("nutritionSummaryId") Long nutritionSummaryId);
     
-    @Select("SELECT * FROM meal_records WHERE daily_diet_id = #{dailyDietId} AND meal_type = #{mealType}")
-    List<MealRecord> findByDailyDietIdAndType(
-        @Param("dailyDietId") Long dailyDietId, 
+    @Select("SELECT * FROM meal_records WHERE nutrition_summary_id = #{nutritionSummaryId} AND meal_type = #{mealType}")
+    List<MealRecord> findByNutritionSummaryIdAndType(
+        @Param("nutritionSummaryId") Long nutritionSummaryId, 
         @Param("mealType") MealType mealType
     );
 }

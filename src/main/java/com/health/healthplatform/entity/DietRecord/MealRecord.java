@@ -10,9 +10,10 @@ import java.time.LocalDateTime;
 public class MealRecord {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private Long dailyDietId; // 每日饮食记录ID
+    private Long nutritionSummaryId; // 每日饮食记录ID，用于关联每日饮食记录
     @EnumValue
     private MealType mealType; // 餐次类型
+    private Integer userId; // 用户ID
     private String foodId; // 食物ID
     private String foodName; // 食物名称
     private Double servingAmount; // 份量

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.health.healthplatform.DTO.FoodSearchResponseDTO;
+import com.health.healthplatform.DTO.DietRecord.FoodSearchResponseDTO;
 import com.health.healthplatform.service.DietRecord.FoodSearchService;
 
 import lombok.extern.slf4j.Slf4j;

@@ -1,18 +1,19 @@
 package com.health.healthplatform.enums;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
+import lombok.Getter;
+
+@Getter
 public enum MealType {
-    BREAKFAST("早餐"),
-    LUNCH("午餐"),
-    DINNER("晚餐"),
-    SNACK("加餐");
+    BREAKFAST("BREAKFAST"),
+    LUNCH("LUNCH"),
+    DINNER("DINNER"),
+    SNACK("SNACK");
 
-    private final String description;
+    @EnumValue
+    private final String value;
 
-    MealType(String description) {
-        this.description = description;
-    }
-
-    public String getDescription() {
-        return description;
+    MealType(String value) {
+        this.value = value;
     }
 }

@@ -15,7 +15,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.health.healthplatform.DTO.FoodSearchResponseDTO;
+import com.health.healthplatform.DTO.DietRecord.FoodSearchResponseDTO;
 import com.health.healthplatform.service.OAuth2Service;
 
 import lombok.extern.slf4j.Slf4j;

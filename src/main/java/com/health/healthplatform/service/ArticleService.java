@@ -415,5 +415,36 @@ public class ArticleService {
         }
     }
 
+    // 获取用户收藏的文章列表
+    public Map<String, Object> getUserFavorites(Integer userId, String search, int page, int size) {
+        if (userId == null) {
+            throw new RuntimeException("用户ID不能为空");
+        }
 
+        Map<String, Object> result = new HashMap<>();
+        try {
+            // 计算偏移量
+            int offset = (page - 1) * size;
+
+            // 获取收藏文章列表
+            List<Article> articles = articleMapper.selectUserFavorites(userId, search, offset, size);
+
+            // 检查文章的点赞和收藏状态
+            for (Article article : articles) {
+                article.setIsLiked(articleMapper.checkUserLiked(article.getId(), userId));
+                article.setIsFavorited(true); // 这是收藏列表，所以都是已收藏的
+            }
+
+            // 获取总数
+            int total = articleMapper.countUserFavorites(userId, search);
+
+            result.put("articles", articles);
+            result.put("total", total);
+
+            return result;
+        } catch (Exception e) {
+            log.error("获取用户收藏文章失败", e);
+            throw new RuntimeException("获取用户收藏文章失败: " + e.getMessage());
+        }
+    }
 }

@@ -320,4 +320,46 @@ public interface ArticleMapper {
     @Delete("DELETE FROM articles WHERE id = #{id}")
     int deleteArticle(Long id);
 
+    // 获取用户收藏的文章列表
+    @Select("SELECT a.*, u.username as author_name, u.avatar as author_avatar " +
+            "FROM articles a " +
+            "INNER JOIN favorites f ON a.id = f.article_id " +
+            "LEFT JOIN user u ON a.user_id = u.id " +
+            "WHERE f.user_id = #{userId} " +
+            "AND IF(#{search} IS NOT NULL AND #{search} != '', " +
+            "(a.title LIKE CONCAT('%', #{search}, '%') OR a.content LIKE CONCAT('%', #{search}, '%')), 1=1) " +
+            "ORDER BY f.created_at DESC " +
+            "LIMIT #{offset}, #{size}")
+    @Results({
+            @Result(property = "id", column = "id"),
+            @Result(property = "htmlContent", column = "html_content"),
+            @Result(property = "coverImage", column = "cover_image"),
+            @Result(property = "categoryId", column = "category_id"),
+            @Result(property = "userId", column = "user_id"),
+            @Result(property = "allowComment", column = "allow_comment"),
+            @Result(property = "viewCount", column = "view_count"),
+            @Result(property = "likeCount", column = "like_count"),
+            @Result(property = "commentCount", column = "comment_count"),
+            @Result(property = "createdAt", column = "created_at"),
+            @Result(property = "updatedAt", column = "updated_at"),
+            @Result(property = "publishTime", column = "publish_time"),
+            @Result(property = "tags", column = "id",
+                    javaType = List.class,
+                    many = @Many(select = "selectArticleTags")),
+            @Result(property = "author", column = "user_id",
+                    one = @One(select = "com.health.healthplatform.mapper.UserMapper.selectById"))
+    })
+    List<Article> selectUserFavorites(@Param("userId") Integer userId,
+                                      @Param("search") String search,
+                                      @Param("offset") int offset,
+                                      @Param("size") int size);
+
+    // 获取用户收藏文章的总数
+    @Select("SELECT COUNT(*) FROM favorites f " +
+            "INNER JOIN articles a ON f.article_id = a.id " +
+            "WHERE f.user_id = #{userId} " +
+            "AND IF(#{search} IS NOT NULL AND #{search} != '', " +
+            "(a.title LIKE CONCAT('%', #{search}, '%') OR a.content LIKE CONCAT('%', #{search}, '%')), 1=1)")
+    int countUserFavorites(@Param("userId") Integer userId, @Param("search") String search);
+
 }

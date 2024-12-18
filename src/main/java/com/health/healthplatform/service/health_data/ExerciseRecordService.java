@@ -106,11 +106,16 @@ public class ExerciseRecordService {
     public WeeklyStats getWeeklyStats(Integer userId) {
         LocalDate today = LocalDate.now();
         LocalDate startOfWeek = today.with(WeekFields.of(Locale.getDefault()).dayOfWeek(), 1);
-
+        
         WeeklyStats stats = new WeeklyStats();
-        stats.setTotalDuration(exerciseRecordMapper.getTotalDuration(userId, startOfWeek, today) / 60.0); // Convert to hours
-        stats.setTotalCalories(exerciseRecordMapper.getTotalCalories(userId, startOfWeek, today));
-        stats.setExerciseCount(exerciseRecordMapper.getExerciseCount(userId, startOfWeek, today));
+        // 处理可能为null的返回值
+        Integer totalDuration = exerciseRecordMapper.getTotalDuration(userId, startOfWeek, today);
+        Integer totalCalories = exerciseRecordMapper.getTotalCalories(userId, startOfWeek, today);
+        Integer exerciseCount = exerciseRecordMapper.getExerciseCount(userId, startOfWeek, today);
+        
+        stats.setTotalDuration(totalDuration != null ? totalDuration / 60.0 : 0.0); // Convert to hours
+        stats.setTotalCalories(totalCalories != null ? totalCalories : 0);
+        stats.setExerciseCount(exerciseCount != null ? exerciseCount : 0);
         return stats;
     }
 

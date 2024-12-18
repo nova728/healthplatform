@@ -20,4 +20,7 @@ public interface HealthDataMapper extends BaseMapper<HealthData> {
     @Select("SELECT * FROM health_data WHERE user_id = #{userId}")
     HealthData findByUserId(@Param("userId") Integer userId);
 
+    @Select("SELECT * FROM health_data WHERE user_id = #{userId} ORDER BY create_time DESC LIMIT 1")
+    HealthData findLatestByUserId(@Param("userId") Integer userId);
+
 }

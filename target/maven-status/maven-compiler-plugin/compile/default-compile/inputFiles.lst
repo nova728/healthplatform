@@ -10,6 +10,7 @@ D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthp
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\enums\MealType.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\mapper\SettingMapper.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\util\BaseUserInfo.java
+D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\DTO\DietRecord\DailyNutritionDTO.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\entity\Tag.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\mapper\health_data\StepsHistoryMapper.java
 D:\ClassLab\FullStackDevelopment\healthplatform\src\main\java\com\health\healthplatform\websocket\NotificationWebSocketHandler.java

@@ -1,5 +1,6 @@
 package com.health.healthplatform.service.DietRecord;
 
+import com.health.healthplatform.DTO.DietRecord.DailyNutritionDTO;
 import com.health.healthplatform.DTO.DietRecord.NutritionStatsDTO;
 import com.health.healthplatform.entity.DietRecord.NutritionSummary;
 import com.health.healthplatform.mapper.DietRecord.NutritionSummaryMapper;
@@ -98,5 +99,50 @@ public class NutritionStatsService {
             case "year" -> endDate.minusYears(1);
             default -> endDate.minusWeeks(1);
         };
+    }
+
+    public List<DailyNutritionDTO> getMonthlyNutrition(Integer userId, Integer year, Integer month) {
+        // 计算月份的起止日期
+        LocalDate startDate = LocalDate.of(year, month, 1);
+        LocalDate endDate = startDate.plusMonths(1).minusDays(1);
+        
+        log.info("获取用户 {} 从 {} 到 {} 的月度营养数据", userId, startDate, endDate);
+        
+        // 获取该月所有营养记录
+        List<NutritionSummary> summaries = nutritionSummaryMapper.findByUserIdAndDateRange(
+            userId, startDate, endDate);
+        
+        // 将记录转换为DTO
+        return summaries.stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
+
+    private DailyNutritionDTO convertToDTO(NutritionSummary summary) {
+        DailyNutritionDTO dto = new DailyNutritionDTO();
+        dto.setDate(summary.getRecordDate());
+        dto.setTotalCalories(summary.getTotalCalories());
+        dto.setTotalCarbs(summary.getTotalCarbs());
+        dto.setTotalProtein(summary.getTotalProtein());
+        dto.setTotalFat(summary.getTotalFat());
+        dto.setRecommendedCalories(summary.getRecommendedCalories());
+        dto.setRecommendedCarbs(summary.getRecommendedCarbs());
+        dto.setRecommendedProtein(summary.getRecommendedProtein());
+        dto.setRecommendedFat(summary.getRecommendedFat());
+        
+        // 计算百分比
+        dto.setCaloriesPercentage(calculatePercentage(summary.getTotalCalories(), summary.getRecommendedCalories()));
+        dto.setCarbsPercentage(calculatePercentage(summary.getTotalCarbs(), summary.getRecommendedCarbs()));
+        dto.setProteinPercentage(calculatePercentage(summary.getTotalProtein(), summary.getRecommendedProtein()));
+        dto.setFatPercentage(calculatePercentage(summary.getTotalFat(), summary.getRecommendedFat()));
+        
+        return dto;
+    }
+
+    private Double calculatePercentage(Double actual, Double recommended) {
+        if (recommended == null || recommended == 0 || actual == null) {
+            return 0.0;
+        }
+        return Math.min((actual / recommended) * 100, 100.0);
     }
 }

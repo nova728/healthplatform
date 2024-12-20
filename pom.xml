@@ -150,6 +150,12 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>31.1-jre</version>
+		</dependency>
+
 		<!--引入jwt相关包来生成token-->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>

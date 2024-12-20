@@ -8,92 +8,128 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @Service
 public class ChatService {
-
     private final OkHttpClient httpClient;
+    private final AtomicReference<String> cachedAccessToken;
+    private volatile long tokenExpirationTime;
+    private volatile long lastRequestTime = 0;
+    private static final long MIN_REQUEST_INTERVAL = 1000; // 最小请求间隔（毫秒）
 
     @Autowired
     private ErnieBotConfig ernieBotConfig;
 
     public ChatService() {
-        // 配置 OkHttpClient 的超时时间
         this.httpClient = new OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)      // 连接超时
-                .writeTimeout(30, TimeUnit.SECONDS)        // 写入超时
-                .readTimeout(30, TimeUnit.SECONDS)         // 读取超时
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
                 .build();
+        this.cachedAccessToken = new AtomicReference<>();
+    }
+
+    private void ensureRequestInterval() throws InterruptedException {
+        long currentTime = System.currentTimeMillis();
+        long timeSinceLastRequest = currentTime - lastRequestTime;
+        if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+            Thread.sleep(MIN_REQUEST_INTERVAL - timeSinceLastRequest);
+        }
+        lastRequestTime = System.currentTimeMillis();
     }
 
     public ChatResponse processMessage(ChatRequest request) {
         try {
-            String accessToken = getAccessToken();
+            ensureRequestInterval();
+            String accessToken = getOrRefreshAccessToken();
             String response = callErnieBot(request.getMessage(), accessToken);
             return new ChatResponse(response);
-        } catch (IOException e) {
-            log.error("Error processing message: ", e);
-            throw new RuntimeException("Failed to process message: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("处理消息失败: ", e);
+            return new ChatResponse("抱歉，系统当前访问人数较多，请稍后再试");
         }
     }
 
-    private String getAccessToken() throws IOException {
-        MediaType mediaType = MediaType.parse("application/x-www-form-urlencoded");
-        RequestBody body = RequestBody.create(mediaType,
-                "grant_type=client_credentials&client_id=" + ernieBotConfig.getApiKey() +
-                        "&client_secret=" + ernieBotConfig.getSecretKey());
+    private synchronized String getOrRefreshAccessToken() throws IOException {
+        String currentToken = cachedAccessToken.get();
+        if (currentToken != null && System.currentTimeMillis() < tokenExpirationTime) {
+            return currentToken;
+        }
+
+        log.info("开始获取访问令牌");
+        MediaType mediaType = MediaType.parse("application/json");
+        RequestBody body = RequestBody.create(mediaType, "");
+
+        String url = String.format("https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=%s&client_secret=%s",
+                ernieBotConfig.getApiKey(), ernieBotConfig.getSecretKey());
 
         Request request = new Request.Builder()
-                .url("https://aip.baidubce.com/oauth/2.0/token")
+                .url(url)
                 .post(body)
-                .addHeader("Content-Type", "application/x-www-form-urlencoded")
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
+            String responseBody = response.body().string();
+            log.info("Token API响应: {}", responseBody);
+
             if (!response.isSuccessful()) {
-                String errorBody = response.body() != null ? response.body().string() : "No error body";
-                log.error("Failed to get access token. Status: {}, Error: {}", response.code(), errorBody);
-                throw new IOException("Failed to get access token: " + response.code());
+                throw new IOException("获取访问令牌失败: " + response.code());
             }
-            JSONObject jsonResponse = new JSONObject(response.body().string());
-            return jsonResponse.getString("access_token");
+
+            JSONObject jsonResponse = new JSONObject(responseBody);
+            String newToken = jsonResponse.getString("access_token");
+            int expiresIn = jsonResponse.getInt("expires_in");
+
+            tokenExpirationTime = System.currentTimeMillis() + (expiresIn - 300) * 1000L;
+            cachedAccessToken.set(newToken);
+
+            return newToken;
         }
     }
 
     private String callErnieBot(String message, String accessToken) throws IOException {
-        log.debug("Calling Ernie Bot with message: {}", message);
+        log.info("调用文心一言API, 消息: {}", message);
 
-        MediaType mediaType = MediaType.parse("application/json");
         JSONObject requestBody = new JSONObject()
                 .put("messages", new JSONObject[]{
                         new JSONObject()
                                 .put("role", "user")
                                 .put("content", message)
-                })
-                .put("temperature", 0.95)
-                .put("top_p", 0.8)
-                .put("penalty_score", 1)
-                .put("stream", false);
+                });
 
-        RequestBody body = RequestBody.create(mediaType, requestBody.toString());
+        log.info("请求体: {}", requestBody);
 
         Request request = new Request.Builder()
-                .url("https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions_pro?access_token=" + accessToken)
-                .post(body)
+                .url("https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/eb-instant?access_token=" + accessToken)
+                .post(RequestBody.create(MediaType.parse("application/json"), requestBody.toString()))
                 .addHeader("Content-Type", "application/json")
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
+            String responseBody = response.body().string();
+            log.info("API响应: {}", responseBody);
+
             if (!response.isSuccessful()) {
-                String errorBody = response.body() != null ? response.body().string() : "No error body";
-                log.error("Failed to call Ernie Bot. Status: {}, Error: {}", response.code(), errorBody);
-                throw new IOException("Failed to call Ernie Bot: " + response.code());
+                throw new IOException("调用API失败: " + response.code());
             }
-            JSONObject jsonResponse = new JSONObject(response.body().string());
-            return jsonResponse.getString("result");
+
+            JSONObject jsonResponse = new JSONObject(responseBody);
+
+            if (jsonResponse.has("error_code")) {
+                String errorMsg = jsonResponse.optString("error_msg", "未知错误");
+                log.error("API返回错误: {}", errorMsg);
+                throw new IOException("API错误: " + errorMsg);
+            }
+
+            return jsonResponse.optString("result", "抱歉，无法获取有效回复");
+        } catch (Exception e) {
+            log.error("调用文心一言API失败: ", e);
+            throw e;
         }
     }
 }

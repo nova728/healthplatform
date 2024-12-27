@@ -27,17 +27,17 @@ public class NutritionStatsService {
     public NutritionStatsDTO getStats(Integer userId, String range) {
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = getStartDate(endDate, range);
-        
+
         log.info("获取用户 {} 从 {} 到 {} 的营养统计数据", userId, startDate, endDate);
-        
+
         // 获取日期范围内的所有营养记录
         List<NutritionSummary> summaries = nutritionSummaryMapper.findByUserIdAndDateRange(
-            userId, startDate, endDate);
-        
+                userId, startDate, endDate);
+
         // 将记录转换为按日期索引的Map
         Map<LocalDate, NutritionSummary> summaryMap = summaries.stream()
-            .collect(Collectors.toMap(NutritionSummary::getRecordDate, s -> s));
-        
+                .collect(Collectors.toMap(NutritionSummary::getRecordDate, s -> s));
+
         // 准备返回数据
         NutritionStatsDTO stats = new NutritionStatsDTO();
         List<String> dates = new ArrayList<>();
@@ -54,7 +54,7 @@ public class NutritionStatsService {
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             NutritionSummary summary = summaryMap.get(date);
             dates.add(date.format(DATE_FORMATTER));
-            
+
             if (summary != null) {
                 calories.add(summary.getTotalCalories());
                 carbs.add(summary.getTotalCarbs());
@@ -102,20 +102,44 @@ public class NutritionStatsService {
     }
 
     public List<DailyNutritionDTO> getMonthlyNutrition(Integer userId, Integer year, Integer month) {
-        // 计算月份的起止日期
         LocalDate startDate = LocalDate.of(year, month, 1);
         LocalDate endDate = startDate.plusMonths(1).minusDays(1);
-        
-        log.info("获取用户 {} 从 {} 到 {} 的月度营养数据", userId, startDate, endDate);
-        
-        // 获取该月所有营养记录
+
         List<NutritionSummary> summaries = nutritionSummaryMapper.findByUserIdAndDateRange(
-            userId, startDate, endDate);
-        
-        // 将记录转换为DTO
-        return summaries.stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+                userId, startDate, endDate);
+
+        // 创建日期到记录的映射
+        Map<LocalDate, NutritionSummary> summaryMap = summaries.stream()
+                .collect(Collectors.toMap(NutritionSummary::getRecordDate, s -> s));
+
+        List<DailyNutritionDTO> monthlyData = new ArrayList<>();
+
+        // 遍历整个月的每一天
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            DailyNutritionDTO dto = new DailyNutritionDTO();
+            dto.setDate(date);
+
+            // 如果有记录则使用记录数据，否则使用默认值
+            NutritionSummary summary = summaryMap.getOrDefault(date, createDefaultSummary(date));
+            dto = convertToDTO(summary);
+            monthlyData.add(dto);
+        }
+
+        return monthlyData;
+    }
+
+    private NutritionSummary createDefaultSummary(LocalDate date) {
+        NutritionSummary summary = new NutritionSummary();
+        summary.setRecordDate(date);
+        summary.setTotalCalories(0.0);
+        summary.setTotalCarbs(0.0);
+        summary.setTotalProtein(0.0);
+        summary.setTotalFat(0.0);
+        summary.setRecommendedCalories(2000.0);
+        summary.setRecommendedCarbs(250.0);
+        summary.setRecommendedProtein(60.0);
+        summary.setRecommendedFat(70.0);
+        return summary;
     }
 
     private DailyNutritionDTO convertToDTO(NutritionSummary summary) {
@@ -129,13 +153,13 @@ public class NutritionStatsService {
         dto.setRecommendedCarbs(summary.getRecommendedCarbs());
         dto.setRecommendedProtein(summary.getRecommendedProtein());
         dto.setRecommendedFat(summary.getRecommendedFat());
-        
+
         // 计算百分比
         dto.setCaloriesPercentage(calculatePercentage(summary.getTotalCalories(), summary.getRecommendedCalories()));
         dto.setCarbsPercentage(calculatePercentage(summary.getTotalCarbs(), summary.getRecommendedCarbs()));
         dto.setProteinPercentage(calculatePercentage(summary.getTotalProtein(), summary.getRecommendedProtein()));
         dto.setFatPercentage(calculatePercentage(summary.getTotalFat(), summary.getRecommendedFat()));
-        
+
         return dto;
     }
 

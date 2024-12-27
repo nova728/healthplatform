@@ -5,6 +5,7 @@ import com.health.healthplatform.entity.Comment;
 import org.apache.ibatis.annotations.*;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -361,5 +362,9 @@ public interface ArticleMapper {
             "AND IF(#{search} IS NOT NULL AND #{search} != '', " +
             "(a.title LIKE CONCAT('%', #{search}, '%') OR a.content LIKE CONCAT('%', #{search}, '%')), 1=1)")
     int countUserFavorites(@Param("userId") Integer userId, @Param("search") String search);
+
+    @Select("SELECT COUNT(*) FROM articles " +
+            "WHERE status = 1 AND publish_time >= #{date}")
+    int countArticlesByDate(@Param("date") LocalDateTime date);
 
 }

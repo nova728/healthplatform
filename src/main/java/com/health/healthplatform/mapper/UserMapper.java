@@ -3,6 +3,7 @@ package com.health.healthplatform.mapper;
 import com.health.healthplatform.entity.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface UserMapper {
@@ -17,4 +18,7 @@ public interface UserMapper {
     public void updateAvatar(@Param("userId") Integer userId, @Param("avatarUrl") String avatarUrl);
     //更新信息
     public void updateUser(User user);
+
+    @Select("SELECT COUNT(*) FROM user")
+    int countUsers();
 }

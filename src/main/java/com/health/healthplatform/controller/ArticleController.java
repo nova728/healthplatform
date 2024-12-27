@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
@@ -344,6 +345,29 @@ public class ArticleController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.failure(500, "删除草稿失败: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/count")
+    public Result getArticlesCount() {
+        try {
+            // 获取已发布的文章总数
+            int count = articleMapper.countArticles(null, null);
+            return Result.success(count);
+        } catch (Exception e) {
+            return Result.failure(500, "获取文章总数失败：" + e.getMessage());
+        }
+    }
+
+    @GetMapping("/count/today")
+    public Result getTodayArticlesCount() {
+        try {
+            // 获取今日发布的文章数
+            LocalDateTime today = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+            int count = articleMapper.countArticlesByDate(today);
+            return Result.success(count);
+        } catch (Exception e) {
+            return Result.failure(500, "获取今日文章数失败：" + e.getMessage());
         }
     }
 }

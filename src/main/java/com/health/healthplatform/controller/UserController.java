@@ -36,6 +36,16 @@ public class UserController {
     @Resource
     private ArticleService articleService;
 
+    @GetMapping("/count")
+    public Result getUserCount() {
+        try {
+            int count = userMapper.countUsers();
+            return Result.success(count);
+        } catch (Exception e) {
+            return Result.failure(500, "获取用户总数失败：" + e.getMessage());
+        }
+    }
+
     // 登录
     @CrossOrigin
     @PostMapping(value = "/login")

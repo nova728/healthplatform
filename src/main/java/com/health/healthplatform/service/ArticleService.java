@@ -3,9 +3,11 @@ package com.health.healthplatform.service;
 import com.health.healthplatform.entity.Article;
 import com.health.healthplatform.entity.Category;
 import com.health.healthplatform.entity.Comment;
+import com.health.healthplatform.entity.User;
 import com.health.healthplatform.mapper.ArticleMapper;
 import com.health.healthplatform.mapper.CategoryMapper;
 import com.health.healthplatform.mapper.TagMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.annotation.Resource;
@@ -16,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 
+@Slf4j
 @Service
 public class ArticleService {
 
@@ -27,6 +30,12 @@ public class ArticleService {
 
     @Resource
     CategoryMapper categoryMapper;
+
+    @Resource
+    UserService userService;
+
+    @Resource
+    private NotificationService notificationService;
 
     @Transactional
     public Article createArticle(Article article, Integer userId) {
@@ -49,47 +58,32 @@ public class ArticleService {
                 article.setPublishTime(now);
             }
 
-            // 打印准备插入的文章数据
-            System.out.println("Preparing to insert article: " + article);
+            // 插入文章并获取生成的ID
+            articleMapper.insert(article);
+            Long articleId = article.getId();
+            System.out.println("Article inserted with ID: " + articleId);
 
-            try {
-                // 插入文章
-                articleMapper.insert(article);
-                System.out.println("Article inserted with ID: " + article.getId());
-            } catch (Exception e) {
-                System.err.println("Error in articleMapper.insert: " + e);
-                e.printStackTrace();
-                throw e;
+            if (articleId == null) {
+                throw new RuntimeException("Failed to get generated article ID");
             }
 
             // 处理标签
-            System.out.println("Processing tags: " + article.getTags());
             for (String tagName : article.getTags()) {
                 if (tagName != null && !tagName.trim().isEmpty()) {
-                    try {
-                        // 获取或创建标签
-                        Long tagId = tagMapper.getOrCreateTag(tagName.trim());
-                        if (tagId != null) {
-                            System.out.println("Inserting tag: " + tagName + " with ID: " + tagId);
-                            articleMapper.insertArticleTag(article.getId(), tagId);
-                        }
-                    } catch (Exception e) {
-                        System.err.println("Error processing tag: " + tagName + ", Error: " + e);
-                        e.printStackTrace();
-                    }
+                    Long tagId = tagMapper.getOrCreateTag(tagName.trim());
+                    articleMapper.insertArticleTag(articleId, tagId);
                 }
             }
 
-            Article result = getArticle(article.getId(), userId);
-            System.out.println("Article created successfully: " + result);
-            return result;
+            // 重要：直接使用返回的article对象，确保ID已经设置
+            return articleMapper.selectById(articleId);
+
         } catch (Exception e) {
             System.err.println("Error in createArticle service: " + e);
             e.printStackTrace();
             throw e;
         }
     }
-
 
     @Transactional
     public Article updateArticle(Article article, Integer userId) {
@@ -179,10 +173,26 @@ public class ArticleService {
             throw new RuntimeException("已经点赞过了");
         }
 
+        Article article = articleMapper.selectById(articleId);
+        if (article == null) {
+            throw new RuntimeException("文章不存在");
+        }
+
         articleMapper.insertLike(articleId, userId);
         articleMapper.increaseLikeCount(articleId);
 
-        // 返回更新后的文章信息
+        // 发送点赞通知
+        String message = String.format("%s 点赞了你的文章 《%s》",
+                userService.selectById(userId).getUsername(),
+                article.getTitle());
+        notificationService.createNotification(
+                article.getUserId(),  // 文章作者ID
+                userId,              // 点赞者ID
+                "like",             // 通知类型
+                message,            // 通知内容
+                articleId           // 文章ID
+        );
+
         return getArticle(articleId, userId);
     }
 
@@ -241,39 +251,75 @@ public class ArticleService {
 
     @Transactional
     public Comment createComment(Long articleId, Integer userId, String content, Long parentId, Integer replyToUserId) {
-        Comment comment = new Comment();
-        comment.setContent(content);
-        comment.setArticleId(articleId);
-        comment.setUserId(userId);
-        comment.setParentId(parentId);
-        comment.setReplyToUserId(replyToUserId);  // 设置回复对象的用户ID
-        comment.setCreatedAt(LocalDateTime.now());
-        comment.setLikeCount(0);
-        comment.setReplyCount(0);
+        try {
+            Comment comment = new Comment();
+            comment.setContent(content);
+            comment.setArticleId(articleId);
+            comment.setUserId(userId);
+            comment.setParentId(parentId);
+            comment.setReplyToUserId(replyToUserId);
+            comment.setCreatedAt(LocalDateTime.now());
+            comment.setLikeCount(0);
+            comment.setReplyCount(0);
 
-        // 打印日志确认数据
-        System.out.println("Creating comment with data:");
-        System.out.println("Article ID: " + articleId);
-        System.out.println("User ID: " + userId);
-        System.out.println("Content: " + content);
-        System.out.println("Parent ID: " + parentId);
-        System.out.println("Reply To User ID: " + replyToUserId);
+            // 插入评论
+            articleMapper.insertComment(comment);
 
-        // 插入评论
-        articleMapper.insertComment(comment);
+            // 如果是回复评论，增加父评论的回复数
+            if (parentId != null) {
+                articleMapper.increaseReplyCount(parentId);
+            }
 
-        // 如果是回复评论，增加父评论的回复数
-        if (parentId != null) {
-            articleMapper.increaseReplyCount(parentId);
+            // 增加文章评论数
+            articleMapper.increaseCommentCount(articleId);
+
+            // 获取文章和评论者信息
+            Article article = articleMapper.selectById(articleId);
+            User commenter = userService.selectById(userId);
+
+            // 发送评论通知
+            if (!userId.equals(article.getUserId())) { // 不给自己发通知
+                String message;
+                if (parentId != null) {
+                    // 如果是回复评论
+                    Comment parentComment = articleMapper.selectCommentById(parentId);
+                    message = String.format("%s 回复了你在文章《%s》中的评论",
+                            commenter.getUsername(), article.getTitle());
+
+                    // 通知评论作者
+                    notificationService.createNotification(
+                            replyToUserId != null ? replyToUserId : parentComment.getUserId(),
+                            userId,
+                            "comment",
+                            message,
+                            articleId
+                    );
+                } else {
+                    // 如果是直接评论文章
+                    message = String.format("%s 评论了你的文章《%s》",
+                            commenter.getUsername(), article.getTitle());
+
+                    // 通知文章作者
+                    notificationService.createNotification(
+                            article.getUserId(),
+                            userId,
+                            "comment",
+                            message,
+                            articleId
+                    );
+                }
+            }
+
+            // 返回完整的评论信息
+            Comment fullComment = articleMapper.selectCommentById(comment.getId());
+            System.out.println("评论创建成功: " + fullComment);
+            return fullComment;
+
+        } catch (Exception e) {
+            System.err.println("创建评论失败: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("创建评论失败", e);
         }
-
-        // 增加文章评论数
-        articleMapper.increaseCommentCount(articleId);
-
-        // 获取完整的评论信息（包括用户信息）
-        Comment fullComment = articleMapper.selectCommentById(comment.getId());
-
-        return fullComment;
     }
 
 
@@ -321,4 +367,84 @@ public class ArticleService {
         return result;
     }
 
+    public List<Article> getHotArticles() {
+        // 更新所有文章的热度分数
+        try{
+            List<Article> allArticles = articleMapper.selectAll();
+            for (Article article : allArticles) {
+                int hotScore = article.getViewCount() * 1 +
+                        article.getLikeCount() * 3 +
+                        article.getCommentCount() * 5;
+                article.setHotScore(hotScore);
+                article.setIsHot(hotScore > 1000);
+                articleMapper.updateHotScore(article.getId());
+            }
+
+            // 获取热门文章
+            return articleMapper.selectHotArticles(10);  // 返回前10篇热门文章
+        }catch (Exception e) {
+            log.error("获取热门文章失败", e);
+            throw new RuntimeException("获取热门文章失败: " + e.getMessage());
+        }
+    }
+
+    public List<Article> getRecommendedArticles(Integer userId) {
+        // 基于用户阅读历史和标签推荐文章
+        return articleMapper.selectRecommendedArticles(userId);
+    }
+
+    public Map<String, Object> getUserArticles(Integer userId) {
+        if (userId == null) {
+            throw new RuntimeException("用户ID不能为空");
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        try {
+            // 获取已发布的文章
+            List<Article> publishedArticles = articleMapper.selectUserArticles(userId, 1);
+            // 获取草稿箱的文章
+            List<Article> draftArticles = articleMapper.selectUserArticles(userId, 0);
+
+            result.put("published", publishedArticles);
+            result.put("drafts", draftArticles);
+
+            return result;
+        } catch (Exception e) {
+            log.error("获取用户文章失败", e);
+            throw new RuntimeException("获取用户文章失败: " + e.getMessage());
+        }
+    }
+
+    // 获取用户收藏的文章列表
+    public Map<String, Object> getUserFavorites(Integer userId, String search, int page, int size) {
+        if (userId == null) {
+            throw new RuntimeException("用户ID不能为空");
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        try {
+            // 计算偏移量
+            int offset = (page - 1) * size;
+
+            // 获取收藏文章列表
+            List<Article> articles = articleMapper.selectUserFavorites(userId, search, offset, size);
+
+            // 检查文章的点赞和收藏状态
+            for (Article article : articles) {
+                article.setIsLiked(articleMapper.checkUserLiked(article.getId(), userId));
+                article.setIsFavorited(true); // 这是收藏列表，所以都是已收藏的
+            }
+
+            // 获取总数
+            int total = articleMapper.countUserFavorites(userId, search);
+
+            result.put("articles", articles);
+            result.put("total", total);
+
+            return result;
+        } catch (Exception e) {
+            log.error("获取用户收藏文章失败", e);
+            throw new RuntimeException("获取用户收藏文章失败: " + e.getMessage());
+        }
+    }
 }

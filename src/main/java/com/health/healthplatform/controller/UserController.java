@@ -3,6 +3,7 @@ package com.health.healthplatform.controller;
 
 import com.health.healthplatform.entity.User;
 import com.health.healthplatform.result.Result;
+import com.health.healthplatform.service.ArticleService;
 import com.health.healthplatform.service.FileService;
 import com.health.healthplatform.service.UserService;
 import com.health.healthplatform.util.JWTUtils;
@@ -31,6 +32,9 @@ public class UserController {
 
     @Resource
     FileService fileService;
+
+    @Resource
+    private ArticleService articleService;
 
     // 登录
     @CrossOrigin
@@ -170,6 +174,24 @@ public class UserController {
         // 保存文件到服务器并返回路径
         // 这里可以实现具体的文件保存逻辑
         return "/uploads/" + file.getOriginalFilename();
+    }
+
+    @GetMapping("/{userId}/favorites")
+    public Result getUserFavorites(
+            @PathVariable Integer userId,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            if (userId == null) {
+                return Result.failure(401, "请先登录");
+            }
+
+            Map<String, Object> result = articleService.getUserFavorites(userId, search, page, size);
+            return Result.success(result);
+        } catch (Exception e) {
+            return Result.failure(500, "获取收藏列表失败: " + e.getMessage());
+        }
     }
 
 }

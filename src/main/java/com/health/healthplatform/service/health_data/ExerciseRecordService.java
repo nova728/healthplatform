@@ -108,14 +108,20 @@ public class ExerciseRecordService {
         LocalDate startOfWeek = today.with(WeekFields.of(Locale.getDefault()).dayOfWeek(), 1);
         
         WeeklyStats stats = new WeeklyStats();
-        // 处理可能为null的返回值
-        Integer totalDuration = exerciseRecordMapper.getTotalDuration(userId, startOfWeek, today);
+
+        // 添加空值处理
+        Integer totalDurationMinutes = exerciseRecordMapper.getTotalDuration(userId, startOfWeek, today);
         Integer totalCalories = exerciseRecordMapper.getTotalCalories(userId, startOfWeek, today);
         Integer exerciseCount = exerciseRecordMapper.getExerciseCount(userId, startOfWeek, today);
-        
-        stats.setTotalDuration(totalDuration != null ? totalDuration / 60.0 : 0.0); // Convert to hours
+
+        // 将数据转换为安全值，Minutes转换为Hours
+        stats.setTotalDuration(totalDurationMinutes != null ? totalDurationMinutes / 60.0 : 0.0);
         stats.setTotalCalories(totalCalories != null ? totalCalories : 0);
         stats.setExerciseCount(exerciseCount != null ? exerciseCount : 0);
+
+        log.debug("Weekly stats for user {}: duration={} hours, calories={}, count={}",
+                userId, stats.getTotalDuration(), stats.getTotalCalories(), stats.getExerciseCount());
+
         return stats;
     }
 

@@ -20,8 +20,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
         registry.addHandler(notificationWebSocketHandler(), "/api/ws/notifications/{userId}")
                 .setAllowedOrigins("*");  // 开发环境允许所有源
     }
-    
-    @Bean
+
     public WebSocketHandler notificationWebSocketHandler() {
         return new NotificationWebSocketHandler();
     }
